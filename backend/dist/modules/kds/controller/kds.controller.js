@@ -64,5 +64,23 @@ class KdsController {
             res.status(500).json((0, response_util_1.errorResponse)('Failed to update kitchen ticket status', error.message));
         }
     }
+    async deleteKitchenTicket(req, res) {
+        try {
+            const id = String(req.params.id);
+            const ticket = await this.kdsService.deleteKitchenTicket(id);
+            if (ticket) {
+                if (socket_1.io) {
+                    socket_1.io.emit('kitchen:ticket-deleted', { ticketId: id });
+                }
+                res.status(200).json((0, response_util_1.successResponse)('Kitchen ticket deleted successfully', ticket));
+            }
+            else {
+                res.status(404).json((0, response_util_1.errorResponse)('Kitchen ticket not found', 'Kitchen ticket not found'));
+            }
+        }
+        catch (error) {
+            res.status(500).json((0, response_util_1.errorResponse)('Failed to delete kitchen ticket', error.message));
+        }
+    }
 }
 exports.KdsController = KdsController;

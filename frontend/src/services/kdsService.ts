@@ -65,6 +65,10 @@ export const kdsService = {
     return kdsService.updateTicketStage(id, stage);
   },
 
+  deleteTicket: async (id: string): Promise<void> => {
+    await axiosInstance.delete(`/kitchen-tickets/${id}`);
+  },
+
   mockGetTickets: async (): Promise<KdsTicket[]> => {
     return kdsService.getTickets();
   },

@@ -10,6 +10,7 @@ import { CustomerAssignmentModal } from '../../components/pos/CustomerAssignment
 import { Table } from '../../types/table';
 import { ROUTES } from '../../constants/routes';
 import { Spinner } from '../../components/common/Spinner';
+import { Armchair } from 'lucide-react';
 
 export const TableView: React.FC = () => {
   const qc = useQueryClient();
@@ -52,9 +53,9 @@ export const TableView: React.FC = () => {
                       }
                       setCustomerModal({ open: true, table: t });
                     }}
-                    className={`aspect-square rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-all hover:shadow-md ${isOccupied ? 'border-orange-400 bg-orange-50 cursor-pointer hover:bg-orange-100' : 'border-gray-200 bg-white hover:border-teal-400 hover:bg-teal-50'}`}
+                    className={`group aspect-square rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-all hover:shadow-md ${isOccupied ? 'border-orange-400 bg-orange-50 cursor-pointer hover:bg-orange-100' : 'border-gray-200 bg-white hover:border-teal-400 hover:bg-teal-50'}`}
                   >
-                    <span className="text-lg">🪑</span>
+                    <Armchair className={`w-6 h-6 transition-colors ${isOccupied ? 'text-orange-500' : 'text-gray-400 group-hover:text-teal-500'}`} />
                     <span className="text-sm font-bold text-gray-800">T{t.tableNumber}</span>
                     <span className="text-xs text-gray-400">{t.numberOfSeats} seats</span>
                     {isOccupied && <span className="text-xs text-orange-500 font-bold">Occupied</span>}

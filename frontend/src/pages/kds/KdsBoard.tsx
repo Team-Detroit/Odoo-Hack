@@ -18,7 +18,7 @@ const stageBadge: Record<string, string> = {
   completed: 'bg-green-100 text-green-700',
 };
 
-const TicketCard: React.FC<{ ticket: KdsTicket; onAdvance: (id: string) => void }> = ({ ticket, onAdvance }) => {
+const TicketCard: React.FC<{ ticket: KdsTicket; onAdvance: (id: string) => void; onDelete: (id: string) => void }> = ({ ticket, onAdvance, onDelete }) => {
   const [doneItems, setDoneItems] = useState<Set<string>>(new Set());
   const toggleItem = (id: string) => setDoneItems(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
   const next = getNextKdsStage(ticket.stage);
@@ -61,11 +61,18 @@ const TicketCard: React.FC<{ ticket: KdsTicket; onAdvance: (id: string) => void 
           </div>
         ))}
       </div>
-      {canAdvance && (
+      {canAdvance ? (
         <div className="px-3 pb-3">
           <button onClick={() => onAdvance(ticket.id)}
-            className="w-full py-1.5 bg-gray-800 text-white rounded-lg text-xs font-medium hover:bg-gray-700 transition-colors">
+            className="w-full py-1.5 bg-gray-800 text-white rounded-lg text-xs font-medium hover:bg-gray-700 transition-colors cursor-pointer">
             → {KDS_STAGE_LABELS[next as KdsStage]}
+          </button>
+        </div>
+      ) : (
+        <div className="px-3 pb-3">
+          <button onClick={() => onDelete(ticket.id)}
+            className="w-full py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer">
+            Delete Ticket
           </button>
         </div>
       )}
@@ -74,14 +81,14 @@ const TicketCard: React.FC<{ ticket: KdsTicket; onAdvance: (id: string) => void 
   );
 };
 
-const StageColumn: React.FC<{ stage: KdsStage; tickets: KdsTicket[]; onAdvance: (id: string) => void }> = ({ stage, tickets, onAdvance }) => (
+const StageColumn: React.FC<{ stage: KdsStage; tickets: KdsTicket[]; onAdvance: (id: string) => void; onDelete: (id: string) => void }> = ({ stage, tickets, onAdvance, onDelete }) => (
   <div className="flex-1 min-w-64">
     <div className={`flex items-center gap-2 mb-3 px-3 py-2 rounded-lg ${stageBadge[stage]}`}>
       <span className="font-semibold text-sm">{KDS_STAGE_LABELS[stage]}</span>
       <span className="ml-auto bg-white/70 px-2 py-0.5 rounded-full text-xs font-bold">{tickets.length}</span>
     </div>
     <div className="space-y-3">
-      {tickets.map(t => <TicketCard key={t.id} ticket={t} onAdvance={onAdvance} />)}
+      {tickets.map(t => <TicketCard key={t.id} ticket={t} onAdvance={onAdvance} onDelete={onDelete} />)}
       {tickets.length === 0 && <div className="text-center py-8 text-gray-300 text-sm">No tickets</div>}
     </div>
   </div>
@@ -98,6 +105,11 @@ export const KdsBoard: React.FC = () => {
       const next = getNextKdsStage(ticket.stage) as KdsStage;
       return kdsService.updateStage(id, next);
     },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['kds'] }),
+  });
+
+  const deleteTicket = useMutation({
+    mutationFn: (id: string) => kdsService.deleteTicket(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['kds'] }),
   });
 
@@ -122,7 +134,7 @@ export const KdsBoard: React.FC = () => {
       </div>
       <div className="flex gap-4 p-4 overflow-x-auto flex-1">
         {([KDS_STAGES.TO_COOK, KDS_STAGES.PREPARING, KDS_STAGES.COMPLETED] as KdsStage[]).map(stage => (
-          <StageColumn key={stage} stage={stage} tickets={byStage(stage)} onAdvance={(id) => advance.mutate(id)} />
+          <StageColumn key={stage} stage={stage} tickets={byStage(stage)} onAdvance={(id) => advance.mutate(id)} onDelete={(id) => deleteTicket.mutate(id)} />
         ))}
       </div>
     </div>

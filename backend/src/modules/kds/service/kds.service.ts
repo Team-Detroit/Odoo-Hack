@@ -27,4 +27,15 @@ export class KdsService {
       throw error;
     }
   }
+
+  async deleteKitchenTicket(id: string) {
+    try {
+      return await this.kdsRepository.deleteKitchenTicket(id);
+    } catch (error: any) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        return null;
+      }
+      throw error;
+    }
+  }
 }

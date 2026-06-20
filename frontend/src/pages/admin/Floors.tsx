@@ -15,7 +15,7 @@ import { Modal } from '../../components/common/Modal';
 import { Input } from '../../components/common/Input';
 import { ConfirmDeleteModal } from '../../components/common/ConfirmDeleteModal';
 import { Spinner } from '../../components/common/Spinner';
-import { Move, Maximize2, Trash2, Edit2, Plus, Check, Settings, Layout, Info, Monitor } from 'lucide-react';
+import { Move, Maximize2, Trash2, Edit2, Plus, Check, Settings, Layout, Info, Monitor, Grid } from 'lucide-react';
 
 const FloorFormModal: React.FC<{ open: boolean; onClose: () => void; initial?: Floor }> = ({ open, onClose, initial }) => {
   const qc = useQueryClient();
@@ -36,11 +36,19 @@ const FloorFormModal: React.FC<{ open: boolean; onClose: () => void; initial?: F
   );
 };
 
-const TableFormModal: React.FC<{ open: boolean; onClose: () => void; floorId: string; initial?: Table; onSaveLocal: (table: Table) => void }> = ({ open, onClose, floorId, initial, onSaveLocal }) => {
-  const [tableNumber, setTableNumber] = useState(initial?.tableNumber ?? 1);
-  const [seats, setSeats] = useState(initial?.numberOfSeats ?? 2);
+const TableFormModal: React.FC<{
+  open: boolean;
+  onClose: () => void;
+  floorId: string;
+  initial?: Table;
+  nextTableNumber: number;
+  onSaveLocal: (tableOrTables: Table | Table[]) => void;
+}> = ({ open, onClose, floorId, initial, nextTableNumber, onSaveLocal }) => {
+  const [tableNumber, setTableNumber] = useState<number | ''>(initial?.tableNumber ?? nextTableNumber);
+  const [seats, setSeats] = useState<number | ''>(initial?.numberOfSeats ?? 2);
   const [shape, setShape] = useState<'square' | 'rectangle' | 'round'>(initial?.shape ?? 'square');
   const [isOos, setIsOos] = useState(initial?.isOutOfService ?? false);
+  const [multiplier, setMultiplier] = useState<number | ''>(1);
 
   useEffect(() => {
     if (initial) {
@@ -48,37 +56,86 @@ const TableFormModal: React.FC<{ open: boolean; onClose: () => void; floorId: st
       setSeats(initial.numberOfSeats);
       setShape(initial.shape ?? 'square');
       setIsOos(initial.isOutOfService ?? false);
+    } else {
+      setTableNumber(nextTableNumber);
+      setSeats(2);
+      setShape('square');
+      setIsOos(false);
+      setMultiplier(1);
     }
-  }, [initial, open]);
+  }, [initial, open, nextTableNumber]);
 
   const handleSave = () => {
-    const updatedTable: Table = {
-      ...(initial || {
-        id: `t_${Date.now()}`,
-        floorId,
-        isActive: true,
-        hasActiveOrder: false,
-        x: 40,
-        y: 40,
-        width: shape === 'rectangle' ? 16 : 10,
-        height: 14,
-        createdAt: new Date().toISOString(),
+    const finalTableNumber = tableNumber === '' ? 1 : tableNumber;
+    const finalSeats = seats === '' ? 2 : seats;
+
+    if (initial) {
+      const updatedTable: Table = {
+        ...initial,
+        tableNumber: finalTableNumber,
+        numberOfSeats: finalSeats,
+        shape,
+        isOutOfService: isOos,
         updatedAt: new Date().toISOString(),
-      }),
-      tableNumber,
-      numberOfSeats: seats,
-      shape,
-      isOutOfService: isOos,
-    };
-    onSaveLocal(updatedTable);
+      };
+      onSaveLocal(updatedTable);
+    } else {
+      const tables: Table[] = [];
+      const nowStr = new Date().toISOString();
+      const count = Math.max(1, Math.min(20, multiplier === '' ? 1 : multiplier));
+      for (let i = 0; i < count; i++) {
+        const xOffset = 40 + i * 5;
+        const yOffset = 40 + i * 5;
+        const boundedX = Math.max(1, Math.min(xOffset, 90));
+        const boundedY = Math.max(1, Math.min(yOffset, 90));
+
+        tables.push({
+          id: `t_${Date.now()}_${i}`,
+          floorId,
+          isActive: true,
+          hasActiveOrder: false,
+          x: boundedX,
+          y: boundedY,
+          width: shape === 'rectangle' ? 16 : 10,
+          height: 14,
+          tableNumber: finalTableNumber + i,
+          numberOfSeats: finalSeats,
+          shape,
+          isOutOfService: isOos,
+          createdAt: nowStr,
+          updatedAt: nowStr,
+        });
+      }
+      onSaveLocal(tables);
+    }
     onClose();
   };
 
   return (
     <Modal open={open} onClose={onClose} title={initial ? 'Edit Table Properties' : 'Add Table'} size="sm">
       <div className="space-y-4">
-        <Input label="Table Number" type="number" value={tableNumber} onChange={e => setTableNumber(Number(e.target.value))} />
-        <Input label="Number of Seats" type="number" value={seats} onChange={e => setSeats(Number(e.target.value))} />
+        <Input 
+          label="Table Number" 
+          type="number" 
+          value={tableNumber} 
+          onChange={e => setTableNumber(e.target.value === '' ? '' : Number(e.target.value))} 
+        />
+        {!initial && (
+          <Input 
+            label="Multiplier (Quantity to Add)" 
+            type="number" 
+            min={1} 
+            max={20} 
+            value={multiplier} 
+            onChange={e => setMultiplier(e.target.value === '' ? '' : Number(e.target.value))} 
+          />
+        )}
+        <Input 
+          label="Number of Seats" 
+          type="number" 
+          value={seats} 
+          onChange={e => setSeats(e.target.value === '' ? '' : Number(e.target.value))} 
+        />
         
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Shape</label>
@@ -233,16 +290,21 @@ export const Floors: React.FC = () => {
   const currentFloor = serverFloors.find(f => f.id === currentFloorId);
   const currentTables = currentFloorId ? (localTables[currentFloorId] || []) : [];
 
-  // Update a single table state locally and save to localStorage
-  const saveTableLocal = (table: Table) => {
+  // Update single or multiple tables state locally and save to localStorage
+  const saveTableLocal = (tableOrTables: Table | Table[]) => {
     if (!currentFloorId) return;
-    const existingIndex = currentTables.findIndex(t => t.id === table.id);
     let updatedList = [...currentTables];
-    if (existingIndex >= 0) {
-      updatedList[existingIndex] = table;
-    } else {
-      updatedList.push(table);
-    }
+    const tablesToSave = Array.isArray(tableOrTables) ? tableOrTables : [tableOrTables];
+    
+    tablesToSave.forEach(table => {
+      const existingIndex = updatedList.findIndex(t => t.id === table.id);
+      if (existingIndex >= 0) {
+        updatedList[existingIndex] = table;
+      } else {
+        updatedList.push(table);
+      }
+    });
+
     const newLocalTables = { ...localTables, [currentFloorId]: updatedList };
     setLocalTables(newLocalTables);
     localStorage.setItem(`odoo_cafe_tables_${currentFloorId}`, JSON.stringify(updatedList));
@@ -259,27 +321,32 @@ export const Floors: React.FC = () => {
     setDelTable(undefined);
   };
 
-  // Add a new default table
-  const addDefaultTable = () => {
-    if (!currentFloorId) return;
-    const maxNum = currentTables.reduce((max, t) => Math.max(max, t.tableNumber), 0);
-    const newTable: Table = {
-      id: `t_${Date.now()}`,
-      floorId: currentFloorId,
-      tableNumber: maxNum + 1,
-      numberOfSeats: 4,
-      isActive: true,
-      hasActiveOrder: false,
-      x: 45,
-      y: 45,
-      width: 10,
-      height: 14,
-      shape: 'square',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    saveTableLocal(newTable);
-    setSelectedTableId(newTable.id);
+  // Auto arrange all tables on the current floor based on their table numbers
+  const autoArrangeTables = () => {
+    if (!currentFloorId || currentTables.length === 0) return;
+    const sorted = [...currentTables].sort((a, b) => a.tableNumber - b.tableNumber);
+    const cols = 5;
+    const colWidth = 18; // spacing X
+    const rowHeight = 20; // spacing Y
+    const startX = 5;
+    const startY = 5;
+
+    const arranged = sorted.map((table, index) => {
+      const col = index % cols;
+      const row = Math.floor(index / cols);
+      const x = startX + col * colWidth;
+      const y = startY + row * rowHeight;
+      return {
+        ...table,
+        x: Math.max(1, Math.min(x, 90)),
+        y: Math.max(1, Math.min(y, 90)),
+      };
+    });
+
+    // Save all arranged tables
+    const newLocalTables = { ...localTables, [currentFloorId]: arranged };
+    setLocalTables(newLocalTables);
+    localStorage.setItem(`odoo_cafe_tables_${currentFloorId}`, JSON.stringify(arranged));
   };
 
   const handleTableClick = async (table: Table) => {
@@ -501,9 +568,19 @@ export const Floors: React.FC = () => {
           </Button>
 
           {editMode && (
-            <Button onClick={addDefaultTable} variant="default" size="sm" className="flex items-center gap-1 h-8 text-xs bg-teal-600 hover:bg-teal-700">
-              <Plus className="w-3.5 h-3.5" /> Add Table
-            </Button>
+            <>
+              <Button
+                onClick={autoArrangeTables}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1.5 h-8 text-xs border-teal-600 text-teal-600 hover:bg-teal-50"
+              >
+                <Grid className="w-3.5 h-3.5" /> Auto Arrange
+              </Button>
+              <Button onClick={() => setTableForm({ open: true, floorId: currentFloorId })} variant="default" size="sm" className="flex items-center gap-1 h-8 text-xs bg-teal-600 hover:bg-teal-700">
+                <Plus className="w-3.5 h-3.5" /> Add Table
+              </Button>
+            </>
           )}
 
           {currentFloor && (
@@ -841,6 +918,7 @@ export const Floors: React.FC = () => {
         onClose={() => setTableForm({ open: false, floorId: '' })}
         floorId={tableForm.floorId}
         initial={tableForm.table}
+        nextTableNumber={(localTables[tableForm.floorId] || []).reduce((max, t) => Math.max(max, t.tableNumber), 0) + 1}
         onSaveLocal={saveTableLocal}
       />
       

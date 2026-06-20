@@ -70,5 +70,21 @@ class KdsRepository {
             }
         });
     }
+    async deleteKitchenTicket(id) {
+        return prisma_1.default.kitchenTicket.delete({
+            where: { id },
+            include: {
+                order: {
+                    include: {
+                        items: {
+                            include: { product: true }
+                        },
+                        customer: true,
+                        table: true
+                    }
+                }
+            }
+        });
+    }
 }
 exports.KdsRepository = KdsRepository;
