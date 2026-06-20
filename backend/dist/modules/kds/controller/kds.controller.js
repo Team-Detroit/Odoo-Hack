@@ -9,7 +9,7 @@ class KdsController {
     async getAllKitchenTickets(req, res) {
         try {
             const tickets = await this.kdsService.getAllKitchenTickets();
-            res.status(200).json((0, response_util_1.successResponse)('Kitchen tickets fetched successfully', { tickets }));
+            res.status(200).json((0, response_util_1.successResponse)('Kitchen tickets fetched successfully', tickets));
         }
         catch (error) {
             res.status(500).json((0, response_util_1.errorResponse)('Failed to fetch kitchen tickets', error.message));
@@ -20,7 +20,7 @@ class KdsController {
             const id = String(req.params.id);
             const ticket = await this.kdsService.getKitchenTicketById(id);
             if (ticket) {
-                res.status(200).json((0, response_util_1.successResponse)('Kitchen ticket fetched successfully', { ticket }));
+                res.status(200).json((0, response_util_1.successResponse)('Kitchen ticket fetched successfully', ticket));
             }
             else {
                 res.status(404).json((0, response_util_1.errorResponse)('Kitchen ticket not found', 'Kitchen ticket not found'));
@@ -34,7 +34,7 @@ class KdsController {
         try {
             const status = String(req.params.status);
             const tickets = await this.kdsService.getTicketsByStatus(status);
-            res.status(200).json((0, response_util_1.successResponse)('Kitchen tickets fetched successfully', { tickets }));
+            res.status(200).json((0, response_util_1.successResponse)('Kitchen tickets fetched successfully', tickets));
         }
         catch (error) {
             res.status(500).json((0, response_util_1.errorResponse)('Failed to fetch kitchen tickets', error.message));
@@ -47,12 +47,14 @@ class KdsController {
             if (!status) {
                 return res.status(400).json((0, response_util_1.errorResponse)('Missing required fields', 'status is required'));
             }
-            const ticket = await this.kdsService.updateTicketStatus(id, status);
+            // Handle lowercase stage mapping from frontend if sent
+            const normalizedStatus = (status.toUpperCase() === 'TO_COOK' ? 'TO_COOK' : status.toUpperCase());
+            const ticket = await this.kdsService.updateTicketStatus(id, normalizedStatus);
             if (ticket) {
                 if (socket_1.io) {
-                    socket_1.io.emit('kitchen:ticket-updated', { ticketId: id, status });
+                    socket_1.io.emit('kitchen:ticket-updated', { ticketId: id, status: normalizedStatus });
                 }
-                res.status(200).json((0, response_util_1.successResponse)('Kitchen ticket status updated successfully', { ticket }));
+                res.status(200).json((0, response_util_1.successResponse)('Kitchen ticket status updated successfully', ticket));
             }
             else {
                 res.status(404).json((0, response_util_1.errorResponse)('Kitchen ticket not found', 'Kitchen ticket not found'));

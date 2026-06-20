@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const users_controller_1 = require("../controller/users.controller");
+const auth_middleware_1 = require("../../auth/middleware/auth.middleware");
+const router = (0, express_1.Router)();
+const controller = new users_controller_1.UsersController();
+router.get('/users', auth_middleware_1.authMiddleware, (req, res) => controller.getAll(req, res));
+router.get('/users/:id', auth_middleware_1.authMiddleware, (req, res) => controller.getById(req, res));
+router.post('/users', auth_middleware_1.authMiddleware, (req, res) => controller.create(req, res));
+router.put('/users/:id', auth_middleware_1.authMiddleware, (req, res) => controller.update(req, res));
+router.delete('/users/:id', auth_middleware_1.authMiddleware, (req, res) => controller.delete(req, res));
+router.post('/users/change-password', auth_middleware_1.authMiddleware, (req, res) => controller.changePassword(req, res));
+exports.default = router;

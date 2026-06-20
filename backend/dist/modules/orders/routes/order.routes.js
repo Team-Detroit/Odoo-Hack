@@ -10,5 +10,6 @@ router.post('/orders', controller.createOrder.bind(controller));
 router.put('/orders/:id', controller.updateOrder.bind(controller));
 router.delete('/orders/:id', controller.deleteOrder.bind(controller));
 router.patch('/orders/:id/send-to-kitchen', controller.sendToKitchen.bind(controller));
+router.patch('/orders/:id/status', controller.updateOrderStatus.bind(controller));
 router.patch('/orders/:id/cancel', controller.cancelOrder.bind(controller));
 exports.default = router;

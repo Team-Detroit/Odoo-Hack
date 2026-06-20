@@ -6,6 +6,7 @@ export interface Table {
   isActive: boolean;
   hasActiveOrder: boolean;
   isOutOfService?: boolean;
+  status?: 'AVAILABLE' | 'OCCUPIED' | 'RESERVED' | 'MAINTENANCE';
   pendingItemsCount?: number;
   currentTotal?: number;
   x?: number; // Position percentage X
@@ -22,6 +23,7 @@ export interface CreateTableRequest {
   tableNumber: number;
   numberOfSeats: number;
   isOutOfService?: boolean;
+  status?: 'AVAILABLE' | 'OCCUPIED' | 'RESERVED' | 'MAINTENANCE';
   x?: number;
   y?: number;
   width?: number;

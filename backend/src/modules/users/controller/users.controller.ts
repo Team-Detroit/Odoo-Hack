@@ -8,7 +8,7 @@ export class UsersController {
   async getAll(req: Request, res: Response) {
     try {
       const users = await this.usersService.getAll();
-      res.status(200).json(successResponse('Users fetched successfully', { users }));
+      res.status(200).json(successResponse('Users fetched successfully', users));
     } catch (error: any) {
       res.status(500).json(errorResponse('Failed to fetch users', error.message));
     }
@@ -17,7 +17,7 @@ export class UsersController {
   async getById(req: Request, res: Response) {
     try {
       const user = await this.usersService.getById(req.params.id as string);
-      res.status(200).json(successResponse('User fetched successfully', { user }));
+      res.status(200).json(successResponse('User fetched successfully', user));
     } catch (error: any) {
       res.status(404).json(errorResponse('User not found', error.message));
     }
@@ -26,7 +26,7 @@ export class UsersController {
   async create(req: Request, res: Response) {
     try {
       const user = await this.usersService.create(req.body);
-      res.status(201).json(successResponse('User created successfully', { user }));
+      res.status(201).json(successResponse('User created successfully', user));
     } catch (error: any) {
       res.status(400).json(errorResponse('Failed to create user', error.message));
     }
@@ -35,7 +35,7 @@ export class UsersController {
   async update(req: Request, res: Response) {
     try {
       const user = await this.usersService.update(req.params.id as string, req.body);
-      res.status(200).json(successResponse('User updated successfully', { user }));
+      res.status(200).json(successResponse('User updated successfully', user));
     } catch (error: any) {
       res.status(400).json(errorResponse('Failed to update user', error.message));
     }
@@ -43,8 +43,8 @@ export class UsersController {
 
   async delete(req: Request, res: Response) {
     try {
-      await this.usersService.delete(req.params.id as string);
-      res.status(200).json(successResponse('User deleted successfully', {}));
+      const user = await this.usersService.delete(req.params.id as string);
+      res.status(200).json(successResponse('User deleted successfully', user));
     } catch (error: any) {
       res.status(400).json(errorResponse('Failed to delete user', error.message));
     }
@@ -54,7 +54,7 @@ export class UsersController {
     try {
       const { userId, oldPassword, newPassword } = req.body;
       await this.usersService.changePassword(userId, oldPassword, newPassword);
-      res.status(200).json(successResponse('Password updated successfully', {}));
+      res.status(200).json(successResponse('Password updated successfully', true));
     } catch (error: any) {
       res.status(400).json(errorResponse('Failed to update password', error.message));
     }

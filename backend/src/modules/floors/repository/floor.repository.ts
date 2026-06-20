@@ -4,11 +4,11 @@ import { UpdateFloorDto } from '../dto/updateFloor.dto';
 
 export class FloorRepository {
   async getAllFloors() {
-    return prisma.floor.findMany();
+    return prisma.floor.findMany({ include: { tables: true } });
   }
 
   async getFloorById(id: string) {
-    return prisma.floor.findUnique({ where: { id } });
+    return prisma.floor.findUnique({ where: { id }, include: { tables: true } });
   }
 
   async createFloor(data: CreateFloorDto) {

@@ -5,4 +5,9 @@ export interface CreateTableDto {
   seats: number;
   status?: TableStatus;
   floorId: string;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  shape?: string;
 }

@@ -3,8 +3,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../constants/routes';
 import { useTableStore } from '../../store/tableStore';
+import { useCartStore } from '../../store/cartStore';
 import { floorService } from '../../services/floorService';
 import { tableService } from '../../services/tableService';
+import { customerService } from '../../services/customerService';
+import { CustomerAssignmentModal } from '../../components/pos/CustomerAssignmentModal';
 import { Floor } from '../../types/floor';
 import { Table } from '../../types/table';
 import { Button } from '../../components/common/Button';
@@ -193,6 +196,7 @@ export const Floors: React.FC = () => {
   const [tableForm, setTableForm] = useState<{ open: boolean; floorId: string; table?: Table }>({ open: false, floorId: '' });
   const [delFloor, setDelFloor] = useState<Floor | undefined>();
   const [delTable, setDelTable] = useState<Table | undefined>();
+  const [customerModal, setCustomerModal] = useState<{ open: boolean; table?: Table }>({ open: false });
   
   // Local state for tables layout override
   const [localTables, setLocalTables] = useState<Record<string, Table[]>>({});
@@ -285,6 +289,32 @@ export const Floors: React.FC = () => {
     };
     saveTableLocal(newTable);
     setSelectedTableId(newTable.id);
+  };
+
+  const handleTableClick = async (table: Table) => {
+    if (table.isOutOfService) return;
+    const isOccupied = table.status === 'OCCUPIED' || table.hasActiveOrder;
+
+    if (isOccupied) {
+      const confirmFree = window.confirm(`Table T${table.tableNumber} is currently occupied. Would you like to free it up and make it available?`);
+      if (confirmFree) {
+        try {
+          await tableService.updateStatus(table.id, 'AVAILABLE');
+          
+          const updatedTable = { ...table, status: 'AVAILABLE' as const, hasActiveOrder: false };
+          saveTableLocal(updatedTable);
+          
+          qc.invalidateQueries({ queryKey: ['floors'] });
+          alert(`Table T${table.tableNumber} is now freed and available!`);
+        } catch (err: any) {
+          console.error("Failed to free table:", err);
+          alert("Failed to free table: " + err.message);
+        }
+      }
+      return;
+    }
+
+    setCustomerModal({ open: true, table });
   };
 
   // Drag and drop event handlers
@@ -539,7 +569,7 @@ export const Floors: React.FC = () => {
             {currentTables.map(t => {
               const isSelected = selectedTableId === t.id;
               const isOos = t.isOutOfService;
-              const hasOrder = t.hasActiveOrder;
+              const isOccupied = t.status === 'OCCUPIED' || t.hasActiveOrder;
 
               // Compute background color based on status
               let bgClass = 'bg-[#ebdcb9] border-amber-700 hover:bg-[#eedfc4]';
@@ -547,7 +577,7 @@ export const Floors: React.FC = () => {
               if (isOos) {
                 bgClass = 'bg-gray-300 border-gray-400 opacity-60';
                 textClass = 'text-gray-500';
-              } else if (hasOrder) {
+              } else if (isOccupied) {
                 bgClass = 'bg-emerald-500 border-emerald-600 hover:bg-emerald-400';
                 textClass = 'text-white';
               }
@@ -556,6 +586,11 @@ export const Floors: React.FC = () => {
                 <div
                   key={t.id}
                   onMouseDown={(e) => handleTableMouseDown(e, t)}
+                  onClick={(e) => {
+                    if (editMode) return;
+                    e.stopPropagation();
+                    handleTableClick(t);
+                  }}
                   className={`absolute border-2 shadow-md flex flex-col items-center justify-center transition-shadow select-none
                     ${t.shape === 'round' ? 'rounded-full' : 'rounded-lg'}
                     ${isSelected ? 'ring-4 ring-amber-400 border-amber-500 z-30 shadow-lg' : 'z-10'}
@@ -576,7 +611,7 @@ export const Floors: React.FC = () => {
                   <div className={`text-center flex flex-col items-center justify-center w-full px-1 ${textClass}`}>
                     <span className="text-sm font-black tracking-tight leading-none">{t.tableNumber}</span>
                     <span className="text-[8px] opacity-75 font-bold leading-none mt-0.5">{t.numberOfSeats} Seats</span>
-                    {hasOrder && !isOos && (
+                    {isOccupied && !isOos && (
                       <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white w-4.5 h-4.5 rounded-full text-[9px] font-black flex items-center justify-center animate-bounce shadow">
                         {t.pendingItemsCount || 1}
                       </span>
@@ -685,8 +720,7 @@ export const Floors: React.FC = () => {
                         size="sm"
                         className="w-full text-[11px] font-bold bg-teal-600 hover:bg-teal-700"
                         onClick={() => {
-                          setSelectedTable(table);
-                          navigate(ROUTES.POS);
+                          handleTableClick(table);
                         }}
                       >
                         New Order
@@ -789,6 +823,88 @@ export const Floors: React.FC = () => {
         onConfirm={() => delTable && deleteTableLocal(delTable.id)}
         loading={false}
         message={`Delete Table ${delTable?.tableNumber}?`}
+      />
+
+      <CustomerAssignmentModal
+        open={customerModal.open}
+        onClose={() => setCustomerModal({ open: false })}
+        tableNumber={customerModal.table?.tableNumber ?? 0}
+        onAssign={async (name, email) => {
+          const table = customerModal.table;
+          if (!table) return;
+          try {
+            // 1. Create customer
+            const customer = await customerService.create({ name, email });
+            useCartStore.getState().setCustomer(customer.id);
+
+            // 2. Mark table as OCCUPIED
+            await tableService.updateStatus(table.id, 'OCCUPIED');
+            const updatedTable = { ...table, status: 'OCCUPIED' as const };
+            saveTableLocal(updatedTable);
+            qc.invalidateQueries({ queryKey: ['floors'] });
+
+            // 3. Make sure table is synced to backend
+            let activeTable = table;
+            if (table.id.startsWith('t_')) {
+              const dbTable = await tableService.create({
+                floorId: table.floorId,
+                tableNumber: table.tableNumber,
+                numberOfSeats: table.numberOfSeats,
+                isOutOfService: table.isOutOfService,
+                x: table.x,
+                y: table.y,
+                width: table.width,
+                height: table.height,
+                shape: table.shape
+              });
+              const createdTable = Array.isArray(dbTable) ? dbTable[0] : dbTable;
+              if (createdTable && createdTable.id) {
+                activeTable = { ...table, id: createdTable.id };
+              }
+            }
+            setSelectedTable(activeTable);
+            navigate(ROUTES.POS);
+          } catch (e: any) {
+            console.error("Failed to assign table:", e);
+            throw e;
+          }
+        }}
+        onSkip={async () => {
+          const table = customerModal.table;
+          if (!table) return;
+          try {
+            useCartStore.getState().setCustomer('');
+
+            // Mark table as OCCUPIED
+            await tableService.updateStatus(table.id, 'OCCUPIED');
+            const updatedTable = { ...table, status: 'OCCUPIED' as const };
+            saveTableLocal(updatedTable);
+            qc.invalidateQueries({ queryKey: ['floors'] });
+
+            let activeTable = table;
+            if (table.id.startsWith('t_')) {
+              const dbTable = await tableService.create({
+                floorId: table.floorId,
+                tableNumber: table.tableNumber,
+                numberOfSeats: table.numberOfSeats,
+                isOutOfService: table.isOutOfService,
+                x: table.x,
+                y: table.y,
+                width: table.width,
+                height: table.height,
+                shape: table.shape
+              });
+              const createdTable = Array.isArray(dbTable) ? dbTable[0] : dbTable;
+              if (createdTable && createdTable.id) {
+                activeTable = { ...table, id: createdTable.id };
+              }
+            }
+            setSelectedTable(activeTable);
+            navigate(ROUTES.POS);
+          } catch (e: any) {
+            console.error("Failed to skip and assign table:", e);
+          }
+        }}
       />
     </div>
   );

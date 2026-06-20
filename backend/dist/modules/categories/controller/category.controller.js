@@ -8,7 +8,7 @@ class CategoryController {
     async getAllCategories(req, res) {
         try {
             const categories = await this.categoryService.getAllCategories();
-            res.status(200).json((0, response_util_1.successResponse)('Categories fetched successfully', { categories }));
+            res.status(200).json((0, response_util_1.successResponse)('Categories fetched successfully', categories));
         }
         catch (error) {
             res.status(500).json((0, response_util_1.errorResponse)('Failed to fetch categories', error.message));
@@ -19,7 +19,7 @@ class CategoryController {
             const id = String(req.params.id);
             const category = await this.categoryService.getCategoryById(id);
             if (category) {
-                res.status(200).json((0, response_util_1.successResponse)('Category fetched successfully', { category }));
+                res.status(200).json((0, response_util_1.successResponse)('Category fetched successfully', category));
             }
             else {
                 res.status(404).json((0, response_util_1.errorResponse)('Category not found', 'Category not found'));
@@ -36,7 +36,7 @@ class CategoryController {
                 return res.status(400).json((0, response_util_1.errorResponse)('Missing required fields', 'Name is required'));
             }
             const category = await this.categoryService.createCategory({ name, color });
-            res.status(201).json((0, response_util_1.successResponse)('Category created successfully', { category }));
+            res.status(201).json((0, response_util_1.successResponse)('Category created successfully', category));
         }
         catch (error) {
             res.status(500).json((0, response_util_1.errorResponse)('Failed to create category', error.message));
@@ -48,7 +48,7 @@ class CategoryController {
             const data = req.body;
             const category = await this.categoryService.updateCategory(id, data);
             if (category) {
-                res.status(200).json((0, response_util_1.successResponse)('Category updated successfully', { category }));
+                res.status(200).json((0, response_util_1.successResponse)('Category updated successfully', category));
             }
             else {
                 res.status(404).json((0, response_util_1.errorResponse)('Category not found', 'Category not found'));
@@ -63,7 +63,7 @@ class CategoryController {
             const id = String(req.params.id);
             const category = await this.categoryService.deleteCategory(id);
             if (category) {
-                res.status(200).json((0, response_util_1.successResponse)('Category deleted successfully', {}));
+                res.status(200).json((0, response_util_1.successResponse)('Category deleted successfully', category));
             }
             else {
                 res.status(404).json((0, response_util_1.errorResponse)('Category not found', 'Category not found'));

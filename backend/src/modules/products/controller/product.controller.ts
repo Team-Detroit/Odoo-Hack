@@ -17,7 +17,7 @@ export class ProductController {
       const search = typeof req.query.search === 'string' ? req.query.search : undefined;
       const categoryId = typeof req.query.categoryId === 'string' ? req.query.categoryId : undefined;
       const products = await this.productService.getAllProducts(search, categoryId);
-      res.status(200).json(successResponse('Products fetched successfully', { products }));
+      res.status(200).json(successResponse('Products fetched successfully', products));
     } catch (error: any) {
       res.status(500).json(errorResponse('Failed to fetch products', error.message));
     }
@@ -28,7 +28,7 @@ export class ProductController {
       const id = String(req.params.id);
       const product = await this.productService.getProductById(id);
       if (product) {
-        res.status(200).json(successResponse('Product fetched successfully', { product }));
+        res.status(200).json(successResponse('Product fetched successfully', product));
       } else {
         res.status(404).json(errorResponse('Product not found', 'Product not found')); 
       }
@@ -48,6 +48,7 @@ export class ProductController {
         tax,
         available,
         isKitchenItem,
+        unitOfMeasure,
       } = req.body as CreateProductDto;
 
       if (!name || price == null || !categoryId) {
@@ -67,10 +68,11 @@ export class ProductController {
         tax: tax ?? 0,
         available: available !== undefined ? available : true,
         isKitchenItem: isKitchenItem !== undefined ? isKitchenItem : true,
+        unitOfMeasure,
       };
 
       const newProduct = await this.productService.createProduct(createProductDto);
-      res.status(201).json(successResponse('Product created successfully', { product: newProduct }));
+      res.status(201).json(successResponse('Product created successfully', newProduct));
     } catch (error: any) {
       res.status(500).json(errorResponse('Failed to create product', error.message));
     }
@@ -95,7 +97,7 @@ export class ProductController {
 
       const updatedProduct = await this.productService.updateProduct(id, updateProductDto);
       if (updatedProduct) {
-        res.status(200).json(successResponse('Product updated successfully', { product: updatedProduct }));
+        res.status(200).json(successResponse('Product updated successfully', updatedProduct));
       } else {
         res.status(404).json(errorResponse('Product not found', 'Product not found'));
       }
@@ -109,7 +111,7 @@ export class ProductController {
       const id = String(req.params.id);
       const deletedProduct = await this.productService.deleteProduct(id);
       if (deletedProduct) {
-        res.status(200).json(successResponse('Product deleted successfully', {}));
+        res.status(200).json(successResponse('Product deleted successfully', deletedProduct));
       } else {
         res.status(404).json(errorResponse('Product not found', 'Product not found'));
       }

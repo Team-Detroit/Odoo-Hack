@@ -34,7 +34,12 @@ export const promotionService = {
   create: async (data: CreatePromotionRequest): Promise<Promotion> => {
     const backendData = {
       name: data.name,
-      discount: data.discountValue,
+      type: data.type,
+      discountType: data.discountType,
+      discountValue: data.discountValue,
+      productId: data.productId,
+      minProductQuantity: data.minProductQuantity,
+      minOrderAmount: data.minOrderAmount,
       active: true,
     };
     const response = await axiosInstance.post('/promotions', backendData);
@@ -45,7 +50,13 @@ export const promotionService = {
   update: async (id: string, data: Partial<CreatePromotionRequest>): Promise<Promotion> => {
     const backendData: any = {};
     if (data.name !== undefined) backendData.name = data.name;
-    if (data.discountValue !== undefined) backendData.discount = data.discountValue;
+    if (data.type !== undefined) backendData.type = data.type;
+    if (data.discountType !== undefined) backendData.discountType = data.discountType;
+    if (data.discountValue !== undefined) backendData.discountValue = data.discountValue;
+    if (data.productId !== undefined) backendData.productId = data.productId;
+    if (data.minProductQuantity !== undefined) backendData.minProductQuantity = data.minProductQuantity;
+    if (data.minOrderAmount !== undefined) backendData.minOrderAmount = data.minOrderAmount;
+
     const response = await axiosInstance.put(`/promotions/${id}`, backendData);
     const promotion = response.data.data?.promotion || response.data.data?.promotions || response.data.data || response.data;
     return mapPromotion(promotion);

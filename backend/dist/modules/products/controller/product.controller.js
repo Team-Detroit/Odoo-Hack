@@ -13,7 +13,7 @@ class ProductController {
             const search = typeof req.query.search === 'string' ? req.query.search : undefined;
             const categoryId = typeof req.query.categoryId === 'string' ? req.query.categoryId : undefined;
             const products = await this.productService.getAllProducts(search, categoryId);
-            res.status(200).json((0, response_util_1.successResponse)('Products fetched successfully', { products }));
+            res.status(200).json((0, response_util_1.successResponse)('Products fetched successfully', products));
         }
         catch (error) {
             res.status(500).json((0, response_util_1.errorResponse)('Failed to fetch products', error.message));
@@ -24,7 +24,7 @@ class ProductController {
             const id = String(req.params.id);
             const product = await this.productService.getProductById(id);
             if (product) {
-                res.status(200).json((0, response_util_1.successResponse)('Product fetched successfully', { product }));
+                res.status(200).json((0, response_util_1.successResponse)('Product fetched successfully', product));
             }
             else {
                 res.status(404).json((0, response_util_1.errorResponse)('Product not found', 'Product not found'));
@@ -36,12 +36,12 @@ class ProductController {
     }
     async createProduct(req, res) {
         try {
-            const { name, price, categoryId, description, image, tax, available, isKitchenItem, } = req.body;
-            if (!name || price == null || !categoryId || available == null || isKitchenItem == null) {
-                return res.status(400).json((0, response_util_1.errorResponse)('Missing required fields', 'Name, price, categoryId, available, and isKitchenItem are required'));
+            const { name, price, categoryId, description, image, tax, available, isKitchenItem, unitOfMeasure, } = req.body;
+            if (!name || price == null || !categoryId) {
+                return res.status(400).json((0, response_util_1.errorResponse)('Missing required fields', 'Name, price, and categoryId are required'));
             }
-            if (typeof price !== 'number' || typeof available !== 'boolean' || typeof isKitchenItem !== 'boolean') {
-                return res.status(400).json((0, response_util_1.errorResponse)('Invalid product payload', 'price must be a number, available and isKitchenItem must be boolean'));
+            if (typeof price !== 'number') {
+                return res.status(400).json((0, response_util_1.errorResponse)('Invalid product payload', 'price must be a number'));
             }
             const createProductDto = {
                 name,
@@ -49,12 +49,13 @@ class ProductController {
                 categoryId,
                 description,
                 image,
-                tax,
-                available,
-                isKitchenItem,
+                tax: tax ?? 0,
+                available: available !== undefined ? available : true,
+                isKitchenItem: isKitchenItem !== undefined ? isKitchenItem : true,
+                unitOfMeasure,
             };
             const newProduct = await this.productService.createProduct(createProductDto);
-            res.status(201).json((0, response_util_1.successResponse)('Product created successfully', { product: newProduct }));
+            res.status(201).json((0, response_util_1.successResponse)('Product created successfully', newProduct));
         }
         catch (error) {
             res.status(500).json((0, response_util_1.errorResponse)('Failed to create product', error.message));
@@ -75,7 +76,7 @@ class ProductController {
             }
             const updatedProduct = await this.productService.updateProduct(id, updateProductDto);
             if (updatedProduct) {
-                res.status(200).json((0, response_util_1.successResponse)('Product updated successfully', { product: updatedProduct }));
+                res.status(200).json((0, response_util_1.successResponse)('Product updated successfully', updatedProduct));
             }
             else {
                 res.status(404).json((0, response_util_1.errorResponse)('Product not found', 'Product not found'));
@@ -90,7 +91,7 @@ class ProductController {
             const id = String(req.params.id);
             const deletedProduct = await this.productService.deleteProduct(id);
             if (deletedProduct) {
-                res.status(200).json((0, response_util_1.successResponse)('Product deleted successfully', {}));
+                res.status(200).json((0, response_util_1.successResponse)('Product deleted successfully', deletedProduct));
             }
             else {
                 res.status(404).json((0, response_util_1.errorResponse)('Product not found', 'Product not found'));

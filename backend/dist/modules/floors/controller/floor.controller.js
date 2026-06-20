@@ -8,7 +8,7 @@ class FloorController {
     async getAllFloors(req, res) {
         try {
             const floors = await this.floorService.getAllFloors();
-            res.status(200).json((0, response_util_1.successResponse)('Floors fetched successfully', { floors }));
+            res.status(200).json((0, response_util_1.successResponse)('Floors fetched successfully', floors));
         }
         catch (error) {
             res.status(500).json((0, response_util_1.errorResponse)('Failed to fetch floors', error.message));
@@ -19,7 +19,7 @@ class FloorController {
             const id = String(req.params.id);
             const floor = await this.floorService.getFloorById(id);
             if (floor) {
-                res.status(200).json((0, response_util_1.successResponse)('Floor fetched successfully', { floor }));
+                res.status(200).json((0, response_util_1.successResponse)('Floor fetched successfully', floor));
             }
             else {
                 res.status(404).json((0, response_util_1.errorResponse)('Floor not found', 'Floor not found'));
@@ -36,7 +36,7 @@ class FloorController {
                 return res.status(400).json((0, response_util_1.errorResponse)('Missing required fields', 'Name is required'));
             }
             const floor = await this.floorService.createFloor({ name });
-            res.status(201).json((0, response_util_1.successResponse)('Floor created successfully', { floor }));
+            res.status(201).json((0, response_util_1.successResponse)('Floor created successfully', floor));
         }
         catch (error) {
             res.status(500).json((0, response_util_1.errorResponse)('Failed to create floor', error.message));
@@ -48,7 +48,7 @@ class FloorController {
             const data = req.body;
             const floor = await this.floorService.updateFloor(id, data);
             if (floor) {
-                res.status(200).json((0, response_util_1.successResponse)('Floor updated successfully', { floor }));
+                res.status(200).json((0, response_util_1.successResponse)('Floor updated successfully', floor));
             }
             else {
                 res.status(404).json((0, response_util_1.errorResponse)('Floor not found', 'Floor not found'));
@@ -63,7 +63,7 @@ class FloorController {
             const id = String(req.params.id);
             const floor = await this.floorService.deleteFloor(id);
             if (floor) {
-                res.status(200).json((0, response_util_1.successResponse)('Floor deleted successfully', {}));
+                res.status(200).json((0, response_util_1.successResponse)('Floor deleted successfully', floor));
             }
             else {
                 res.status(404).json((0, response_util_1.errorResponse)('Floor not found', 'Floor not found'));

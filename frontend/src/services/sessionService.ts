@@ -13,17 +13,24 @@ export const sessionService = {
   },
 
   getCurrentActive: async (): Promise<Session | null> => {
-    const response = await axiosInstance.get('/sessions/current');
-    return response.data.data?.session || response.data.data || null;
+    try {
+      const response = await axiosInstance.get('/sessions/current');
+      return response.data.data?.session || response.data.data || null;
+    } catch (error: any) {
+      if (error.response && error.response.status === 404) {
+        return null;
+      }
+      throw error;
+    }
   },
 
   create: async (data: CreateSessionRequest): Promise<Session> => {
-    const response = await axiosInstance.post('/sessions', data);
+    const response = await axiosInstance.post('/sessions/open', data);
     return response.data.data?.session || response.data.data || response.data;
   },
 
   close: async (data: CloseSessionRequest): Promise<Session> => {
-    const response = await axiosInstance.post(`/sessions/${data.sessionId}/close`, data);
+    const response = await axiosInstance.post('/sessions/close', data);
     return response.data.data?.session || response.data.data || response.data;
   },
 

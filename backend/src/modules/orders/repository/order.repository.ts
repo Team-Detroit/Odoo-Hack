@@ -4,19 +4,73 @@ import { UpdateOrderDto } from '../dto/updateOrder.dto';
 
 export class OrderRepository {
   async getAllOrders() {
-    return prisma.order.findMany({ include: { items: true } });
+    return prisma.order.findMany({ 
+      include: { 
+        items: true,
+        customer: true,
+        table: true
+      } 
+    });
   }
 
   async getOrderById(id: string) {
-    return prisma.order.findUnique({ where: { id }, include: { items: true } });
+    return prisma.order.findUnique({ 
+      where: { id }, 
+      include: { 
+        items: {
+          include: { product: true }
+        },
+        customer: true,
+        table: true
+      } 
+    });
   }
 
-  async createOrder(data: CreateOrderDto) {
-    return prisma.order.create({ data, include: { items: true } });
+  async createOrder(data: any) {
+    const { items, ...orderData } = data;
+    const order = await prisma.order.create({
+      data: {
+        ...orderData,
+        items: {
+          create: (items || []).map((i: any) => ({
+            productId: i.productId,
+            quantity: Number(i.quantity),
+            price: Number(i.price),
+            total: Number(i.quantity) * Number(i.price)
+          }))
+        }
+      },
+      include: { 
+        items: true,
+        customer: true,
+        table: true
+      }
+    });
+
+    if (orderData.tableId) {
+      try {
+        await prisma.table.update({
+          where: { id: orderData.tableId },
+          data: { status: 'OCCUPIED' }
+        });
+      } catch (err) {
+        console.error("Failed to automatically set table as OCCUPIED:", err);
+      }
+    }
+
+    return order;
   }
 
   async updateOrder(id: string, data: UpdateOrderDto) {
-    return prisma.order.update({ where: { id }, data, include: { items: true } });
+    return prisma.order.update({ 
+      where: { id }, 
+      data, 
+      include: { 
+        items: true,
+        customer: true,
+        table: true
+      } 
+    });
   }
 
   async deleteOrder(id: string) {
@@ -27,7 +81,11 @@ export class OrderRepository {
     return prisma.order.update({
       where: { id },
       data: { status: 'SENT_TO_KITCHEN' },
-      include: { items: true },
+      include: { 
+        items: true,
+        customer: true,
+        table: true
+      },
     });
   }
 
@@ -35,7 +93,11 @@ export class OrderRepository {
     return prisma.order.update({
       where: { id },
       data: { status: 'CANCELLED' },
-      include: { items: true },
+      include: { 
+        items: true,
+        customer: true,
+        table: true
+      },
     });
   }
 }

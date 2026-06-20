@@ -10,7 +10,7 @@ export class FloorController {
   async getAllFloors(req: Request, res: Response) {
     try {
       const floors = await this.floorService.getAllFloors();
-      res.status(200).json(successResponse('Floors fetched successfully', { floors }));
+      res.status(200).json(successResponse('Floors fetched successfully', floors));
     } catch (error: any) {
       res.status(500).json(errorResponse('Failed to fetch floors', error.message));
     }
@@ -21,7 +21,7 @@ export class FloorController {
       const id = String(req.params.id);
       const floor = await this.floorService.getFloorById(id);
       if (floor) {
-        res.status(200).json(successResponse('Floor fetched successfully', { floor }));
+        res.status(200).json(successResponse('Floor fetched successfully', floor));
       } else {
         res.status(404).json(errorResponse('Floor not found', 'Floor not found'));
       }
@@ -38,7 +38,7 @@ export class FloorController {
       }
 
       const floor = await this.floorService.createFloor({ name });
-      res.status(201).json(successResponse('Floor created successfully', { floor }));
+      res.status(201).json(successResponse('Floor created successfully', floor));
     } catch (error: any) {
       res.status(500).json(errorResponse('Failed to create floor', error.message));
     }
@@ -51,7 +51,7 @@ export class FloorController {
 
       const floor = await this.floorService.updateFloor(id, data);
       if (floor) {
-        res.status(200).json(successResponse('Floor updated successfully', { floor }));
+        res.status(200).json(successResponse('Floor updated successfully', floor));
       } else {
         res.status(404).json(errorResponse('Floor not found', 'Floor not found'));
       }
@@ -65,7 +65,7 @@ export class FloorController {
       const id = String(req.params.id);
       const floor = await this.floorService.deleteFloor(id);
       if (floor) {
-        res.status(200).json(successResponse('Floor deleted successfully', {}));
+        res.status(200).json(successResponse('Floor deleted successfully', floor));
       } else {
         res.status(404).json(errorResponse('Floor not found', 'Floor not found'));
       }

@@ -11,7 +11,10 @@ class AuthController {
             if (!data.name || !data.email || !data.password || !data.role) {
                 return res.status(400).json((0, response_util_1.errorResponse)('Missing required fields', 'name, email, password and role are required'));
             }
-            const user = await this.authService.signup(data);
+            const user = await this.authService.signup({
+                ...data,
+                role: data.role.toUpperCase()
+            });
             res.status(201).json((0, response_util_1.successResponse)('User created successfully', { user }));
         }
         catch (error) {

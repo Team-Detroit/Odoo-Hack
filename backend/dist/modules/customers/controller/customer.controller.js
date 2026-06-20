@@ -8,7 +8,7 @@ class CustomerController {
     async getAllCustomers(req, res) {
         try {
             const customers = await this.customerService.getAllCustomers();
-            res.status(200).json((0, response_util_1.successResponse)('Customers fetched successfully', { customers }));
+            res.status(200).json((0, response_util_1.successResponse)('Customers fetched successfully', customers));
         }
         catch (error) {
             res.status(500).json((0, response_util_1.errorResponse)('Failed to fetch customers', error.message));
@@ -19,7 +19,7 @@ class CustomerController {
             const id = String(req.params.id);
             const customer = await this.customerService.getCustomerById(id);
             if (customer) {
-                res.status(200).json((0, response_util_1.successResponse)('Customer fetched successfully', { customer }));
+                res.status(200).json((0, response_util_1.successResponse)('Customer fetched successfully', customer));
             }
             else {
                 res.status(404).json((0, response_util_1.errorResponse)('Customer not found', 'Customer not found'));
@@ -36,7 +36,7 @@ class CustomerController {
                 return res.status(400).json((0, response_util_1.errorResponse)('Missing required fields', 'Name is required'));
             }
             const customer = await this.customerService.createCustomer({ name, phone, email });
-            res.status(201).json((0, response_util_1.successResponse)('Customer created successfully', { customer }));
+            res.status(201).json((0, response_util_1.successResponse)('Customer created successfully', customer));
         }
         catch (error) {
             res.status(500).json((0, response_util_1.errorResponse)('Failed to create customer', error.message));
@@ -48,7 +48,7 @@ class CustomerController {
             const data = req.body;
             const customer = await this.customerService.updateCustomer(id, data);
             if (customer) {
-                res.status(200).json((0, response_util_1.successResponse)('Customer updated successfully', { customer }));
+                res.status(200).json((0, response_util_1.successResponse)('Customer updated successfully', customer));
             }
             else {
                 res.status(404).json((0, response_util_1.errorResponse)('Customer not found', 'Customer not found'));
@@ -63,7 +63,7 @@ class CustomerController {
             const id = String(req.params.id);
             const customer = await this.customerService.deleteCustomer(id);
             if (customer) {
-                res.status(200).json((0, response_util_1.successResponse)('Customer deleted successfully', {}));
+                res.status(200).json((0, response_util_1.successResponse)('Customer deleted successfully', customer));
             }
             else {
                 res.status(404).json((0, response_util_1.errorResponse)('Customer not found', 'Customer not found'));

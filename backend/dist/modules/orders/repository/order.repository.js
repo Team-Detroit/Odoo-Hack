@@ -7,16 +7,69 @@ exports.OrderRepository = void 0;
 const prisma_1 = __importDefault(require("../../../shared/prisma"));
 class OrderRepository {
     async getAllOrders() {
-        return prisma_1.default.order.findMany({ include: { items: true } });
+        return prisma_1.default.order.findMany({
+            include: {
+                items: true,
+                customer: true,
+                table: true
+            }
+        });
     }
     async getOrderById(id) {
-        return prisma_1.default.order.findUnique({ where: { id }, include: { items: true } });
+        return prisma_1.default.order.findUnique({
+            where: { id },
+            include: {
+                items: {
+                    include: { product: true }
+                },
+                customer: true,
+                table: true
+            }
+        });
     }
     async createOrder(data) {
-        return prisma_1.default.order.create({ data, include: { items: true } });
+        const { items, ...orderData } = data;
+        const order = await prisma_1.default.order.create({
+            data: {
+                ...orderData,
+                items: {
+                    create: (items || []).map((i) => ({
+                        productId: i.productId,
+                        quantity: Number(i.quantity),
+                        price: Number(i.price),
+                        total: Number(i.quantity) * Number(i.price)
+                    }))
+                }
+            },
+            include: {
+                items: true,
+                customer: true,
+                table: true
+            }
+        });
+        if (orderData.tableId) {
+            try {
+                await prisma_1.default.table.update({
+                    where: { id: orderData.tableId },
+                    data: { status: 'OCCUPIED' }
+                });
+            }
+            catch (err) {
+                console.error("Failed to automatically set table as OCCUPIED:", err);
+            }
+        }
+        return order;
     }
     async updateOrder(id, data) {
-        return prisma_1.default.order.update({ where: { id }, data, include: { items: true } });
+        return prisma_1.default.order.update({
+            where: { id },
+            data,
+            include: {
+                items: true,
+                customer: true,
+                table: true
+            }
+        });
     }
     async deleteOrder(id) {
         return prisma_1.default.order.delete({ where: { id } });
@@ -25,14 +78,22 @@ class OrderRepository {
         return prisma_1.default.order.update({
             where: { id },
             data: { status: 'SENT_TO_KITCHEN' },
-            include: { items: true },
+            include: {
+                items: true,
+                customer: true,
+                table: true
+            },
         });
     }
     async cancelOrder(id) {
         return prisma_1.default.order.update({
             where: { id },
             data: { status: 'CANCELLED' },
-            include: { items: true },
+            include: {
+                items: true,
+                customer: true,
+                table: true
+            },
         });
     }
 }

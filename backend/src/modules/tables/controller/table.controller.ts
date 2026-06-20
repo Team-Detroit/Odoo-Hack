@@ -12,7 +12,7 @@ export class TableController {
   async getAllTables(req: Request, res: Response) {
     try {
       const tables = await this.tableService.getAllTables();
-      res.status(200).json(successResponse('Tables fetched successfully', { tables }));
+      res.status(200).json(successResponse('Tables fetched successfully', tables));
     } catch (error: any) {
       res.status(500).json(errorResponse('Failed to fetch tables', error.message));
     }
@@ -23,7 +23,7 @@ export class TableController {
       const id = String(req.params.id);
       const table = await this.tableService.getTableById(id);
       if (table) {
-        res.status(200).json(successResponse('Table fetched successfully', { table }));
+        res.status(200).json(successResponse('Table fetched successfully', table));
       } else {
         res.status(404).json(errorResponse('Table not found', 'Table not found'));
       }
@@ -34,13 +34,23 @@ export class TableController {
 
   async createTable(req: Request, res: Response) {
     try {
-      const { number, seats, status, floorId } = req.body as CreateTableDto;
+      const { number, seats, status, floorId, x, y, width, height, shape } = req.body as CreateTableDto;
       if (!number || !seats || !floorId) {
         return res.status(400).json(errorResponse('Missing required fields', 'number, seats and floorId are required'));
       }
 
-      const table = await this.tableService.createTable({ number, seats, status, floorId });
-      res.status(201).json(successResponse('Table created successfully', { table }));
+      const table = await this.tableService.createTable({
+        number: Number(number),
+        seats: Number(seats),
+        status,
+        floorId,
+        x: x != null ? Number(x) : undefined,
+        y: y != null ? Number(y) : undefined,
+        width: width != null ? Number(width) : undefined,
+        height: height != null ? Number(height) : undefined,
+        shape: shape || undefined
+      });
+      res.status(201).json(successResponse('Table created successfully', table));
     } catch (error: any) {
       res.status(500).json(errorResponse('Failed to create table', error.message));
     }
@@ -51,9 +61,16 @@ export class TableController {
       const id = String(req.params.id);
       const data = req.body as UpdateTableDto;
 
+      if (data.number != null) data.number = Number(data.number);
+      if (data.seats != null) data.seats = Number(data.seats);
+      if (data.x !== undefined) data.x = data.x != null ? Number(data.x) : undefined;
+      if (data.y !== undefined) data.y = data.y != null ? Number(data.y) : undefined;
+      if (data.width !== undefined) data.width = data.width != null ? Number(data.width) : undefined;
+      if (data.height !== undefined) data.height = data.height != null ? Number(data.height) : undefined;
+
       const table = await this.tableService.updateTable(id, data);
       if (table) {
-        res.status(200).json(successResponse('Table updated successfully', { table }));
+        res.status(200).json(successResponse('Table updated successfully', table));
       } else {
         res.status(404).json(errorResponse('Table not found', 'Table not found'));
       }
@@ -67,7 +84,7 @@ export class TableController {
       const id = String(req.params.id);
       const table = await this.tableService.deleteTable(id);
       if (table) {
-        res.status(200).json(successResponse('Table deleted successfully', {}));
+        res.status(200).json(successResponse('Table deleted successfully', table));
       } else {
         res.status(404).json(errorResponse('Table not found', 'Table not found'));
       }
@@ -90,7 +107,7 @@ export class TableController {
         if (io) {
           io.emit('table:updated', { tableId: id, status });
         }
-        res.status(200).json(successResponse('Table status updated successfully', { table }));
+        res.status(200).json(successResponse('Table status updated successfully', table));
       } else {
         res.status(404).json(errorResponse('Table not found', 'Table not found'));
       }

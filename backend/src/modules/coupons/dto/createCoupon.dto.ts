@@ -1,5 +1,6 @@
 export interface CreateCouponDto {
   code: string;
-  discount: number;
+  discountType: string;
+  discountValue: number;
   active?: boolean;
 }

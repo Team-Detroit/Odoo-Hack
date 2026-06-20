@@ -207,7 +207,8 @@ async function main() {
   await prisma.coupon.create({
     data: {
       code: "SUMMER20",
-      discount: 20,
+      discountType: "percentage",
+      discountValue: 20,
       active: true,
     },
   });
@@ -215,7 +216,8 @@ async function main() {
   await prisma.coupon.create({
     data: {
       code: "WELCOME10",
-      discount: 10,
+      discountType: "percentage",
+      discountValue: 10,
       active: true,
     },
   });
@@ -227,7 +229,9 @@ async function main() {
     data: {
       name: "Happy Hour",
       description: "50% off on coffee 3-5 PM",
-      discount: 50,
+      type: "order",
+      discountType: "percentage",
+      discountValue: 50,
       active: true,
     },
   });
@@ -236,7 +240,9 @@ async function main() {
     data: {
       name: "Weekend Special",
       description: "Buy 2, get 1 free on sandwiches",
-      discount: 33.33,
+      type: "order",
+      discountType: "percentage",
+      discountValue: 33.33,
       active: true,
     },
   });

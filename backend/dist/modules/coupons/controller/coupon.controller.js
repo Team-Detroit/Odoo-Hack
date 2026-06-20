@@ -8,7 +8,7 @@ class CouponController {
     async getAllCoupons(req, res) {
         try {
             const coupons = await this.couponService.getAllCoupons();
-            res.status(200).json((0, response_util_1.successResponse)('Coupons fetched successfully', { coupons }));
+            res.status(200).json((0, response_util_1.successResponse)('Coupons fetched successfully', coupons));
         }
         catch (error) {
             res.status(500).json((0, response_util_1.errorResponse)('Failed to fetch coupons', error.message));
@@ -19,7 +19,7 @@ class CouponController {
             const id = String(req.params.id);
             const coupon = await this.couponService.getCouponById(id);
             if (coupon) {
-                res.status(200).json((0, response_util_1.successResponse)('Coupon fetched successfully', { coupon }));
+                res.status(200).json((0, response_util_1.successResponse)('Coupon fetched successfully', coupon));
             }
             else {
                 res.status(404).json((0, response_util_1.errorResponse)('Coupon not found', 'Coupon not found'));
@@ -34,7 +34,7 @@ class CouponController {
             const code = String(req.params.code);
             const coupon = await this.couponService.getCouponByCode(code);
             if (coupon) {
-                res.status(200).json((0, response_util_1.successResponse)('Coupon fetched successfully', { coupon }));
+                res.status(200).json((0, response_util_1.successResponse)('Coupon fetched successfully', coupon));
             }
             else {
                 res.status(404).json((0, response_util_1.errorResponse)('Coupon not found', 'Coupon not found'));
@@ -46,12 +46,12 @@ class CouponController {
     }
     async createCoupon(req, res) {
         try {
-            const { code, discount, active } = req.body;
-            if (!code || discount == null) {
-                return res.status(400).json((0, response_util_1.errorResponse)('Missing required fields', 'code and discount are required'));
+            const { code, discountType, discountValue, active } = req.body;
+            if (!code || discountValue == null) {
+                return res.status(400).json((0, response_util_1.errorResponse)('Missing required fields', 'code and discountValue are required'));
             }
-            const coupon = await this.couponService.createCoupon({ code, discount, active });
-            res.status(201).json((0, response_util_1.successResponse)('Coupon created successfully', { coupon }));
+            const coupon = await this.couponService.createCoupon({ code, discountType: discountType || 'percentage', discountValue: Number(discountValue), active });
+            res.status(201).json((0, response_util_1.successResponse)('Coupon created successfully', coupon));
         }
         catch (error) {
             res.status(500).json((0, response_util_1.errorResponse)('Failed to create coupon', error.message));
@@ -61,9 +61,11 @@ class CouponController {
         try {
             const id = String(req.params.id);
             const data = req.body;
+            if (data.discountValue != null)
+                data.discountValue = Number(data.discountValue);
             const coupon = await this.couponService.updateCoupon(id, data);
             if (coupon) {
-                res.status(200).json((0, response_util_1.successResponse)('Coupon updated successfully', { coupon }));
+                res.status(200).json((0, response_util_1.successResponse)('Coupon updated successfully', coupon));
             }
             else {
                 res.status(404).json((0, response_util_1.errorResponse)('Coupon not found', 'Coupon not found'));
@@ -78,7 +80,7 @@ class CouponController {
             const id = String(req.params.id);
             const coupon = await this.couponService.deleteCoupon(id);
             if (coupon) {
-                res.status(200).json((0, response_util_1.successResponse)('Coupon deleted successfully', {}));
+                res.status(200).json((0, response_util_1.successResponse)('Coupon deleted successfully', coupon));
             }
             else {
                 res.status(404).json((0, response_util_1.errorResponse)('Coupon not found', 'Coupon not found'));

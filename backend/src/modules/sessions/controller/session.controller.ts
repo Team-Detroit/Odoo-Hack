@@ -16,9 +16,9 @@ export class SessionController {
 
       const session = await this.sessionService.getCurrentSession(req.user.id);
       if (session) {
-        res.status(200).json(successResponse('Current session fetched', { session }));
+        res.status(200).json(successResponse('Current session fetched', session));
       } else {
-        res.status(404).json(errorResponse('No active session', 'No active session found'));
+        res.status(200).json(successResponse('No active session found', null));
       }
     } catch (error: any) {
       res.status(500).json(errorResponse('Failed to fetch session', error.message));
@@ -32,7 +32,7 @@ export class SessionController {
       }
 
       const session = await this.sessionService.openSession({ userId: req.user.id });
-      res.status(201).json(successResponse('Session opened successfully', { session }));
+      res.status(201).json(successResponse('Session opened successfully', session));
     } catch (error: any) {
       res.status(500).json(errorResponse('Failed to open session', error.message));
     }
@@ -47,7 +47,7 @@ export class SessionController {
 
       const session = await this.sessionService.closeSession(sessionId);
       if (session) {
-        res.status(200).json(successResponse('Session closed successfully', { session }));
+        res.status(200).json(successResponse('Session closed successfully', session));
       } else {
         res.status(404).json(errorResponse('Session not found', 'Session not found'));
       }
@@ -63,7 +63,7 @@ export class SessionController {
       }
 
       const history = await this.sessionService.getSessionHistory(req.user.id);
-      res.status(200).json(successResponse('Session history fetched', { history }));
+      res.status(200).json(successResponse('Session history fetched', history));
     } catch (error: any) {
       res.status(500).json(errorResponse('Failed to fetch session history', error.message));
     }

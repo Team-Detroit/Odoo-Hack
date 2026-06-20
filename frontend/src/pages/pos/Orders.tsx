@@ -10,10 +10,11 @@ export const Orders: React.FC = () => {
   const { data: orders = [], isLoading } = useQuery({ queryKey: ['orders'], queryFn: orderService.mockGetBySession });
   const [search, setSearch] = useState('');
 
-  const filtered = orders.filter(o =>
-    !search || o.orderNumber.toLowerCase().includes(search.toLowerCase()) ||
-    o.customer?.name?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = orders.filter(o => {
+    const orderNo = o.orderNumber || `#${o.id.substring(0, 8).toUpperCase()}`;
+    return !search || orderNo.toLowerCase().includes(search.toLowerCase()) ||
+      o.customer?.name?.toLowerCase().includes(search.toLowerCase());
+  });
 
   if (isLoading) return <div className="flex justify-center py-16"><Spinner /></div>;
 
@@ -38,11 +39,11 @@ export const Orders: React.FC = () => {
             <tbody className="divide-y divide-gray-100">
               {filtered.map(o => (
                 <tr key={o.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3"><Link to={`/pos/orders/${o.id}`} className="font-mono font-semibold text-teal-600 hover:underline">{o.orderNumber}</Link></td>
+                  <td className="px-4 py-3"><Link to={`/pos/orders/${o.id}`} className="font-mono font-semibold text-teal-600 hover:underline">{o.orderNumber || `#${o.id.substring(0, 8).toUpperCase()}`}</Link></td>
                   <td className="px-4 py-3 text-gray-600">{o.customer?.name ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-600">{o.table ? `T${o.table.tableNumber}` : '—'}</td>
+                  <td className="px-4 py-3 text-gray-600">{o.table ? `T${o.table.tableNumber ?? o.table.number}` : '—'}</td>
                   <td className="px-4 py-3 font-semibold">₹{o.total.toFixed(2)}</td>
-                  <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded text-xs font-medium ${ORDER_STATUS_COLORS[o.status]}`}>{ORDER_STATUS_LABELS[o.status]}</span></td>
+                  <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded text-xs font-medium ${ORDER_STATUS_COLORS[o.status.toLowerCase()] || 'bg-gray-100 text-gray-800'}`}>{ORDER_STATUS_LABELS[o.status.toLowerCase()] || o.status}</span></td>
                   <td className="px-4 py-3 text-gray-400 text-xs">{new Date(o.createdAt).toLocaleString('en-IN')}</td>
                 </tr>
               ))}

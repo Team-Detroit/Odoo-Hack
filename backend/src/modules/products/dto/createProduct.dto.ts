@@ -7,4 +7,5 @@ export interface CreateProductDto {
   tax?: number;
   available: boolean;
   isKitchenItem: boolean;
+  unitOfMeasure?: string;
 }

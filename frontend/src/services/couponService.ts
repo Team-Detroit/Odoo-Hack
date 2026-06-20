@@ -32,7 +32,8 @@ export const couponService = {
   create: async (data: CreateCouponRequest): Promise<Coupon> => {
     const backendData = {
       code: data.code,
-      discount: data.discountValue,
+      discountType: data.discountType || 'percentage',
+      discountValue: data.discountValue,
       active: true,
     };
     const response = await axiosInstance.post('/coupons', backendData);
@@ -43,7 +44,8 @@ export const couponService = {
   update: async (id: string, data: Partial<CreateCouponRequest>): Promise<Coupon> => {
     const backendData: any = {};
     if (data.code !== undefined) backendData.code = data.code;
-    if (data.discountValue !== undefined) backendData.discount = data.discountValue;
+    if (data.discountType !== undefined) backendData.discountType = data.discountType;
+    if (data.discountValue !== undefined) backendData.discountValue = data.discountValue;
     const response = await axiosInstance.put(`/coupons/${id}`, backendData);
     const coupon = response.data.data?.coupon || response.data.data?.coupons || response.data.data || response.data;
     return mapCoupon(coupon);

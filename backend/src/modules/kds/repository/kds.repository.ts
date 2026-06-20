@@ -3,17 +3,52 @@ import { KitchenStatus } from '@prisma/client';
 
 export class KdsRepository {
   async getAllKitchenTickets() {
-    return prisma.kitchenTicket.findMany({ include: { order: { include: { items: true } } } });
+    return prisma.kitchenTicket.findMany({ 
+      include: { 
+        order: { 
+          include: { 
+            items: {
+              include: { product: true }
+            },
+            customer: true,
+            table: true
+          } 
+        } 
+      } 
+    });
   }
 
   async getKitchenTicketById(id: string) {
-    return prisma.kitchenTicket.findUnique({ where: { id }, include: { order: { include: { items: true } } } });
+    return prisma.kitchenTicket.findUnique({ 
+      where: { id }, 
+      include: { 
+        order: { 
+          include: { 
+            items: {
+              include: { product: true }
+            },
+            customer: true,
+            table: true
+          } 
+        } 
+      } 
+    });
   }
 
   async getTicketsByStatus(status: KitchenStatus) {
     return prisma.kitchenTicket.findMany({
       where: { status },
-      include: { order: { include: { items: true } } },
+      include: { 
+        order: { 
+          include: { 
+            items: {
+              include: { product: true }
+            },
+            customer: true,
+            table: true
+          } 
+        } 
+      }
     });
   }
 
@@ -21,7 +56,17 @@ export class KdsRepository {
     return prisma.kitchenTicket.update({
       where: { id },
       data: { status },
-      include: { order: { include: { items: true } } },
+      include: { 
+        order: { 
+          include: { 
+            items: {
+              include: { product: true }
+            },
+            customer: true,
+            table: true
+          } 
+        } 
+      }
     });
   }
 }

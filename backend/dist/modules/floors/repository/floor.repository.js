@@ -7,10 +7,10 @@ exports.FloorRepository = void 0;
 const prisma_1 = __importDefault(require("../../../shared/prisma"));
 class FloorRepository {
     async getAllFloors() {
-        return prisma_1.default.floor.findMany();
+        return prisma_1.default.floor.findMany({ include: { tables: true } });
     }
     async getFloorById(id) {
-        return prisma_1.default.floor.findUnique({ where: { id } });
+        return prisma_1.default.floor.findUnique({ where: { id }, include: { tables: true } });
     }
     async createFloor(data) {
         return prisma_1.default.floor.create({ data });

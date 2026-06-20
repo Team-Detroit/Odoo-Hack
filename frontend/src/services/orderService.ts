@@ -42,6 +42,11 @@ export const orderService = {
     return response.data.data?.order || response.data.data || response.data;
   },
 
+  createPayment: async (data: { orderId: string; method: string; amount: number }): Promise<any> => {
+    const response = await axiosInstance.post('/payments', data);
+    return response.data.data?.payment || response.data.data || response.data;
+  },
+
   mockGetBySession: async (): Promise<Order[]> => {
     const session = useSessionStore.getState().session;
     if (session) {

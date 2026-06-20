@@ -1,15 +1,24 @@
 import axiosInstance from '../lib/axios';
 import { Floor, CreateFloorRequest, UpdateFloorRequest } from '../types/floor';
+import { mapTableFromDb } from './tableService';
 
 export const floorService = {
   getAll: async (): Promise<Floor[]> => {
     const response = await axiosInstance.get('/floors');
-    return response.data.data?.floors || response.data.data || [];
+    const list = response.data.data?.floors || response.data.data || [];
+    return list.map((f: any) => ({
+      ...f,
+      tables: Array.isArray(f.tables) ? f.tables.map(mapTableFromDb) : []
+    }));
   },
 
   getById: async (id: string): Promise<Floor> => {
     const response = await axiosInstance.get(`/floors/${id}`);
-    return response.data.data?.floors || response.data.data || [];
+    const floor = response.data.data?.floor || response.data.data?.floors || response.data.data || response.data;
+    return {
+      ...floor,
+      tables: Array.isArray(floor?.tables) ? floor.tables.map(mapTableFromDb) : []
+    };
   },
 
   create: async (data: CreateFloorRequest): Promise<Floor> => {

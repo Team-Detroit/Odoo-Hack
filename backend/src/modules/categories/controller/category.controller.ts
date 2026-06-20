@@ -10,7 +10,7 @@ export class CategoryController {
   async getAllCategories(req: Request, res: Response) {
     try {
       const categories = await this.categoryService.getAllCategories();
-      res.status(200).json(successResponse('Categories fetched successfully', { categories }));
+      res.status(200).json(successResponse('Categories fetched successfully', categories));
     } catch (error: any) {
       res.status(500).json(errorResponse('Failed to fetch categories', error.message));
     }
@@ -21,7 +21,7 @@ export class CategoryController {
       const id = String(req.params.id);
       const category = await this.categoryService.getCategoryById(id);
       if (category) {
-        res.status(200).json(successResponse('Category fetched successfully', { category }));
+        res.status(200).json(successResponse('Category fetched successfully', category));
       } else {
         res.status(404).json(errorResponse('Category not found', 'Category not found'));
       }
@@ -38,7 +38,7 @@ export class CategoryController {
       }
 
       const category = await this.categoryService.createCategory({ name, color });
-      res.status(201).json(successResponse('Category created successfully', { category }));
+      res.status(201).json(successResponse('Category created successfully', category));
     } catch (error: any) {
       res.status(500).json(errorResponse('Failed to create category', error.message));
     }
@@ -51,7 +51,7 @@ export class CategoryController {
 
       const category = await this.categoryService.updateCategory(id, data);
       if (category) {
-        res.status(200).json(successResponse('Category updated successfully', { category }));
+        res.status(200).json(successResponse('Category updated successfully', category));
       } else {
         res.status(404).json(errorResponse('Category not found', 'Category not found'));
       }
@@ -65,7 +65,7 @@ export class CategoryController {
       const id = String(req.params.id);
       const category = await this.categoryService.deleteCategory(id);
       if (category) {
-        res.status(200).json(successResponse('Category deleted successfully', {}));
+        res.status(200).json(successResponse('Category deleted successfully', category));
       } else {
         res.status(404).json(errorResponse('Category not found', 'Category not found'));
       }

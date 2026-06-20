@@ -106,6 +106,8 @@ model Product {
 
   isKitchenItem Boolean @default(true)
 
+  unitOfMeasure String @default("piece")
+
   categoryId String
 
   category Category @relation(fields: [categoryId], references: [id])
@@ -132,7 +134,7 @@ model Floor {
 model Table {
   id String @id @default(uuid())
 
-  number Int @unique
+  number Int
 
   seats Int
 
@@ -146,9 +148,21 @@ model Table {
 
   selfOrderToken SelfOrderToken?
 
+  x Float?
+
+  y Float?
+
+  width Float?
+
+  height Float?
+
+  shape String?
+
   createdAt DateTime @default(now())
 
   updatedAt DateTime @updatedAt
+
+  @@unique([floorId, number])
 }
 
 model Session {
@@ -260,7 +274,9 @@ model Coupon {
 
   code String @unique
 
-  discount Float
+  discountType String @default("percentage")
+
+  discountValue Float
 
   active Boolean @default(true)
 }
@@ -272,7 +288,17 @@ model Promotion {
 
   description String?
 
-  discount Float
+  type String @default("order")
+
+  discountType String @default("percentage")
+
+  discountValue Float
+
+  productId String?
+
+  minProductQuantity Int?
+
+  minOrderAmount Float?
 
   active Boolean @default(true)
 }

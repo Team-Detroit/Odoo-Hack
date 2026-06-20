@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import { productService } from '../../services/productService';
 import { categoryService } from '../../services/categoryService';
+import { orderService } from '../../services/orderService';
+import { customerService } from '../../services/customerService';
 import { useCartStore } from '../../store/cartStore';
+import { useTableStore } from '../../store/tableStore';
+import { useSessionStore } from '../../store/sessionStore';
+import { sessionService } from '../../services/sessionService';
+import { ROUTES } from '../../constants/routes';
 import { Product } from '../../types/product';
 import { Button } from '../../components/common/Button';
 import { Spinner } from '../../components/common/Spinner';
 import { Modal } from '../../components/common/Modal';
+import { CustomerAssignmentModal } from '../../components/pos/CustomerAssignmentModal';
 import { Input } from '../../components/common/Input';
 import { 
   Banknote, 
@@ -133,7 +140,7 @@ const CartItemRow: React.FC<{ productId: string }> = ({ productId }) => {
 };
 
 // ── Payment Modal ──────────────────────────────────────────────────────────
-const PaymentModal: React.FC<{ open: boolean; onClose: () => void; total: number; onPaid: () => void }> = ({ open, onClose, total, onPaid }) => {
+const PaymentModal: React.FC<{ open: boolean; onClose: () => void; total: number; onPaid: (method: 'cash' | 'card' | 'upi') => void }> = ({ open, onClose, total, onPaid }) => {
   const [method, setMethod] = useState<'cash' | 'card' | 'upi'>('cash');
   const [cash, setCash] = useState('');
   const change = Number(cash) - total;
@@ -183,7 +190,7 @@ const PaymentModal: React.FC<{ open: boolean; onClose: () => void; total: number
             <p className="text-xs text-gray-500 font-semibold mt-3">Scan QR code using UPI App to pay ₹{total.toFixed(2)}</p>
           </div>
         )}
-        <Button className="w-full" size="lg" onClick={onPaid}>
+        <Button className="w-full" size="lg" onClick={() => onPaid(method)}>
           <Check className="w-4 h-4" /> Confirm Payment
         </Button>
       </div>
@@ -195,13 +202,18 @@ const PaymentModal: React.FC<{ open: boolean; onClose: () => void; total: number
 export const OrderView: React.FC = () => {
   const ctx = useOutletContext<{ search: string }>();
   const search = ctx?.search ?? '';
+  const navigate = useNavigate();
+  const { selectedTable } = useTableStore();
+  const { session } = useSessionStore();
   const { data: products = [], isLoading } = useQuery({ queryKey: ['products'], queryFn: productService.mockGetAll });
-  const { items, totals, addItem, clearCart, couponCode, setCoupon, setDiscount } = useCartStore();
+  const { items, totals, addItem, clearCart, couponCode, setCoupon, setDiscount, customerId } = useCartStore();
   const [catFilter, setCatFilter] = useState('');
   const [payOpen, setPayOpen] = useState(false);
+  const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [discountOpen, setDiscountOpen] = useState(false);
   const [couponInput, setCouponInput] = useState('');
   const [discountInput, setDiscountInput] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const filtered = products.filter(p => {
     const matchCat = !catFilter || p.categoryId === catFilter;
@@ -209,7 +221,82 @@ export const OrderView: React.FC = () => {
     return matchCat && matchSearch;
   });
 
-  const handlePaid = () => { clearCart(); setPayOpen(false); };
+  const handleSubmitOrder = async (isPaid = false, paymentMethod?: 'cash' | 'card' | 'upi') => {
+    if (items.length === 0) return;
+    if (!selectedTable) {
+      alert("Please select a table from the Floor Plan first.");
+      navigate(ROUTES.ADMIN_FLOORS);
+      return;
+    }
+    let activeSession = session;
+    if (!activeSession) {
+      try {
+        const active = await sessionService.getCurrentActive();
+        if (active) {
+          useSessionStore.getState().setSession(active);
+          activeSession = active;
+        } else {
+          const newSession = await sessionService.create({
+            employeeId: '',
+            openingBalance: 0
+          });
+          useSessionStore.getState().setSession(newSession);
+          activeSession = newSession;
+        }
+      } catch (e) {
+        console.error("Failed to dynamically initialize session:", e);
+      }
+    }
+
+    if (!activeSession) {
+      alert("No active session. Please open a session first.");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const order = await orderService.create({
+        sessionId: activeSession.id,
+        tableId: selectedTable.id,
+        customerId: customerId || undefined,
+        subtotal: totals.subtotal,
+        discount: totals.discountAmount,
+        tax: totals.tax,
+        total: totals.total,
+        items: items.map(i => ({
+          productId: i.productId,
+          quantity: i.quantity,
+          price: i.unitPrice
+        }))
+      } as any);
+
+      if (!isPaid) {
+        await orderService.sendToKitchen(order.id);
+      } else {
+        // Mark as paid if the Pay button was used
+        await orderService.updateStatus(order.id, 'paid');
+        // Record payment in the database
+        await orderService.createPayment({
+          orderId: order.id,
+          method: (paymentMethod || 'cash').toUpperCase(),
+          amount: totals.total
+        });
+      }
+
+      clearCart();
+      window.open(ROUTES.KDS, '_blank');
+      navigate(ROUTES.POS_ORDERS);
+    } catch (error: any) {
+      console.error("Order creation failed:", error);
+      alert("Failed to create order: " + (error.response?.data?.message || error.message));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePaid = async (method: 'cash' | 'card' | 'upi') => {
+    setPayOpen(false);
+    await handleSubmitOrder(true, method);
+  };
 
   return (
     <div className="flex h-full bg-gray-50">
@@ -233,15 +320,22 @@ export const OrderView: React.FC = () => {
 
       {/* Right: Cart */}
       <div className="w-88 bg-white border-l border-gray-200 flex flex-col shrink-0 shadow-sm">
-        <div className="px-5 py-4 border-b border-gray-150 flex items-center justify-between">
-          <h3 className="font-bold text-gray-800 text-sm uppercase tracking-wider">Current Cart</h3>
-          {items.length > 0 && (
-            <button 
-              onClick={clearCart} 
-              className="text-xs text-red-500 hover:text-red-700 font-semibold cursor-pointer transition-colors"
-            >
-              Clear All
-            </button>
+        <div className="px-5 py-4 border-b border-gray-150 flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-gray-800 text-sm uppercase tracking-wider">Current Cart</h3>
+            {items.length > 0 && (
+              <button 
+                onClick={clearCart} 
+                className="text-xs text-red-500 hover:text-red-700 font-semibold cursor-pointer transition-colors"
+              >
+                Clear All
+              </button>
+            )}
+          </div>
+          {selectedTable && (
+            <span className="text-xs font-bold text-odoo-purple">
+              Table {selectedTable.tableNumber} ({selectedTable.numberOfSeats} Seats)
+            </span>
           )}
         </div>
 
@@ -309,14 +403,22 @@ export const OrderView: React.FC = () => {
               <Button 
                 variant="outline" 
                 size="md" 
-                onClick={() => {}} 
+                onClick={() => handleSubmitOrder(false)} 
                 className="border-gray-300 text-gray-700"
+                isLoading={isSubmitting}
               >
                 <Send className="w-4 h-4" /> Kitchen
               </Button>
               <Button 
                 size="md" 
-                onClick={() => setPayOpen(true)}
+                onClick={() => {
+                  if (!customerId) {
+                    setCustomerModalOpen(true);
+                  } else {
+                    setPayOpen(true);
+                  }
+                }}
+                isLoading={isSubmitting}
               >
                 Pay ₹{totals.total.toFixed(2)}
               </Button>
@@ -335,6 +437,25 @@ export const OrderView: React.FC = () => {
           <Button onClick={() => { setDiscount(Number(discountInput)); setDiscountOpen(false); }}>Apply</Button>
         </div>
       </Modal>
+
+      <CustomerAssignmentModal
+        open={customerModalOpen}
+        onClose={() => setCustomerModalOpen(false)}
+        tableNumber={selectedTable?.tableNumber ?? 0}
+        onAssign={async (name, email) => {
+          try {
+            const customer = await customerService.create({ name, email });
+            useCartStore.getState().setCustomer(customer.id);
+            setPayOpen(true);
+          } catch (e: any) {
+            console.error("Failed to assign customer:", e);
+            throw e;
+          }
+        }}
+        onSkip={() => {
+          setPayOpen(true);
+        }}
+      />
     </div>
   );
 };

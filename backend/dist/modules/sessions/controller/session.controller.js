@@ -12,10 +12,10 @@ class SessionController {
             }
             const session = await this.sessionService.getCurrentSession(req.user.id);
             if (session) {
-                res.status(200).json((0, response_util_1.successResponse)('Current session fetched', { session }));
+                res.status(200).json((0, response_util_1.successResponse)('Current session fetched', session));
             }
             else {
-                res.status(404).json((0, response_util_1.errorResponse)('No active session', 'No active session found'));
+                res.status(200).json((0, response_util_1.successResponse)('No active session found', null));
             }
         }
         catch (error) {
@@ -28,7 +28,7 @@ class SessionController {
                 return res.status(401).json((0, response_util_1.errorResponse)('Unauthorized', 'User not authenticated'));
             }
             const session = await this.sessionService.openSession({ userId: req.user.id });
-            res.status(201).json((0, response_util_1.successResponse)('Session opened successfully', { session }));
+            res.status(201).json((0, response_util_1.successResponse)('Session opened successfully', session));
         }
         catch (error) {
             res.status(500).json((0, response_util_1.errorResponse)('Failed to open session', error.message));
@@ -42,7 +42,7 @@ class SessionController {
             }
             const session = await this.sessionService.closeSession(sessionId);
             if (session) {
-                res.status(200).json((0, response_util_1.successResponse)('Session closed successfully', { session }));
+                res.status(200).json((0, response_util_1.successResponse)('Session closed successfully', session));
             }
             else {
                 res.status(404).json((0, response_util_1.errorResponse)('Session not found', 'Session not found'));
@@ -58,7 +58,7 @@ class SessionController {
                 return res.status(401).json((0, response_util_1.errorResponse)('Unauthorized', 'User not authenticated'));
             }
             const history = await this.sessionService.getSessionHistory(req.user.id);
-            res.status(200).json((0, response_util_1.successResponse)('Session history fetched', { history }));
+            res.status(200).json((0, response_util_1.successResponse)('Session history fetched', history));
         }
         catch (error) {
             res.status(500).json((0, response_util_1.errorResponse)('Failed to fetch session history', error.message));
