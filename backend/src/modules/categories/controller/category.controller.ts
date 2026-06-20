@@ -32,12 +32,12 @@ export class CategoryController {
 
   async createCategory(req: Request, res: Response) {
     try {
-      const { name, color } = req.body as CreateCategoryDto;
+      const { name, color, isActive } = req.body as CreateCategoryDto;
       if (!name) {
         return res.status(400).json(errorResponse('Missing required fields', 'Name is required'));
       }
 
-      const category = await this.categoryService.createCategory({ name, color });
+      const category = await this.categoryService.createCategory({ name, color, isActive });
       res.status(201).json(successResponse('Category created successfully', category));
     } catch (error: any) {
       res.status(500).json(errorResponse('Failed to create category', error.message));

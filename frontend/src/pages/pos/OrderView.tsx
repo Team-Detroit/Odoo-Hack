@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { productService } from '../../services/productService';
 import { categoryService } from '../../services/categoryService';
 import { orderService } from '../../services/orderService';
 import { customerService } from '../../services/customerService';
+import { floorService } from '../../services/floorService';
+import { tableService } from '../../services/tableService';
 import { useCartStore } from '../../store/cartStore';
 import { useTableStore } from '../../store/tableStore';
 import { useSessionStore } from '../../store/sessionStore';
 import { sessionService } from '../../services/sessionService';
 import { ROUTES } from '../../constants/routes';
 import { Product } from '../../types/product';
+import { Table } from '../../types/table';
 import { Button } from '../../components/common/Button';
 import { Spinner } from '../../components/common/Spinner';
 import { Modal } from '../../components/common/Modal';
@@ -200,12 +203,14 @@ const PaymentModal: React.FC<{ open: boolean; onClose: () => void; total: number
 
 // ── Main OrderView ─────────────────────────────────────────────────────────
 export const OrderView: React.FC = () => {
+  const qc = useQueryClient();
   const ctx = useOutletContext<{ search: string }>();
   const search = ctx?.search ?? '';
   const navigate = useNavigate();
   const { selectedTable } = useTableStore();
   const { session } = useSessionStore();
   const { data: products = [], isLoading } = useQuery({ queryKey: ['products'], queryFn: productService.mockGetAll });
+  const { data: floors = [] } = useQuery({ queryKey: ['floors'], queryFn: floorService.mockGetAll });
   const { items, totals, addItem, clearCart, couponCode, setCoupon, setDiscount, customerId } = useCartStore();
   const [catFilter, setCatFilter] = useState('');
   const [payOpen, setPayOpen] = useState(false);
@@ -214,6 +219,8 @@ export const OrderView: React.FC = () => {
   const [couponInput, setCouponInput] = useState('');
   const [discountInput, setDiscountInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tableModalOpen, setTableModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'kitchen' | 'pay' | null>(null);
 
   const filtered = products.filter(p => {
     const matchCat = !catFilter || p.categoryId === catFilter;
@@ -296,6 +303,27 @@ export const OrderView: React.FC = () => {
   const handlePaid = async (method: 'cash' | 'card' | 'upi') => {
     setPayOpen(false);
     await handleSubmitOrder(true, method);
+  };
+
+  const handleSelectTable = async (table: Table) => {
+    useTableStore.getState().setSelectedTable(table);
+    try {
+      await tableService.updateStatus(table.id, 'OCCUPIED');
+      qc.invalidateQueries({ queryKey: ['floors'] });
+    } catch (err) {
+      console.error("Failed to occupy table:", err);
+    }
+    setTableModalOpen(false);
+    if (pendingAction === 'kitchen') {
+      handleSubmitOrder(false);
+    } else if (pendingAction === 'pay') {
+      if (!customerId) {
+        setCustomerModalOpen(true);
+      } else {
+        setPayOpen(true);
+      }
+    }
+    setPendingAction(null);
   };
 
   return (
@@ -403,7 +431,14 @@ export const OrderView: React.FC = () => {
               <Button 
                 variant="outline" 
                 size="md" 
-                onClick={() => handleSubmitOrder(false)} 
+                onClick={() => {
+                  if (!selectedTable) {
+                    setPendingAction('kitchen');
+                    setTableModalOpen(true);
+                  } else {
+                    handleSubmitOrder(false);
+                  }
+                }} 
                 className="border-gray-300 text-gray-700"
                 isLoading={isSubmitting}
               >
@@ -412,7 +447,10 @@ export const OrderView: React.FC = () => {
               <Button 
                 size="md" 
                 onClick={() => {
-                  if (!customerId) {
+                  if (!selectedTable) {
+                    setPendingAction('pay');
+                    setTableModalOpen(true);
+                  } else if (!customerId) {
                     setCustomerModalOpen(true);
                   } else {
                     setPayOpen(true);
@@ -456,6 +494,45 @@ export const OrderView: React.FC = () => {
           setPayOpen(true);
         }}
       />
+
+      {/* Table Selection Modal */}
+      <Modal 
+        open={tableModalOpen} 
+        onClose={() => { setTableModalOpen(false); setPendingAction(null); }} 
+        title="Select a Table" 
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-gray-500">Please choose a table to assign this order to.</p>
+          <div className="max-h-96 overflow-y-auto space-y-4 pr-1">
+            {floors.map(floor => (
+              <div key={floor.id} className="space-y-2">
+                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">{floor.name}</h4>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {floor.tables?.map((table: Table) => {
+                    const isOccupied = table.status === 'OCCUPIED' || table.hasActiveOrder;
+                    return (
+                      <button
+                        key={table.id}
+                        onClick={() => handleSelectTable(table)}
+                        className={`p-3 rounded-lg border text-center transition-all flex flex-col items-center justify-center gap-1
+                          ${isOccupied 
+                            ? 'border-orange-200 bg-orange-50 text-orange-700 cursor-not-allowed opacity-60' 
+                            : 'border-gray-200 bg-white hover:border-odoo-teal hover:bg-teal-50 cursor-pointer'
+                          }`}
+                        disabled={isOccupied}
+                      >
+                        <span className="text-xs font-bold">T{table.tableNumber}</span>
+                        <span className="text-[10px] text-gray-400">{table.numberOfSeats} seats</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

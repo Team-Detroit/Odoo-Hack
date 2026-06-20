@@ -14,8 +14,15 @@ const CategoryFormModal: React.FC<{ open: boolean; onClose: () => void; initial?
   const qc = useQueryClient();
   const [name, setName] = useState(initial?.name ?? '');
   const [color, setColor] = useState(initial?.color ?? COLORS[0]);
+  const [isActive, setIsActive] = useState(initial?.isActive ?? true);
 
-  React.useEffect(() => { setName(initial?.name ?? ''); setColor(initial?.color ?? COLORS[0]); }, [initial]);
+  React.useEffect(() => { 
+    setName(initial?.name ?? ''); 
+    setColor(initial?.color ?? COLORS[0]); 
+    setIsActive(initial?.isActive ?? true);
+  }, [initial]);
+
+  const hasNoProducts = initial && (initial.products?.length ?? 0) === 0;
 
   const save = useMutation({
     mutationFn: (d: CreateCategoryRequest) => initial ? categoryService.update(initial.id, d) : categoryService.create(d),
@@ -40,9 +47,42 @@ const CategoryFormModal: React.FC<{ open: boolean; onClose: () => void; initial?
             <span className="text-xs text-gray-500">{color}</span>
           </div>
         </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+          {hasNoProducts ? (
+            <div className="text-xs text-amber-600 bg-amber-50 border border-amber-200 p-2.5 rounded-lg font-medium">
+              Automatically forced to <strong>Inactive</strong> because this category contains no products.
+            </div>
+          ) : (
+            <div className="flex gap-4 mt-1">
+              <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer text-gray-700">
+                <input
+                  type="radio"
+                  name="isActive"
+                  checked={isActive === true}
+                  onChange={() => setIsActive(true)}
+                  className="w-4 h-4 text-teal-600 border-gray-300 focus:ring-teal-500"
+                />
+                Active
+              </label>
+              <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer text-gray-700">
+                <input
+                  type="radio"
+                  name="isActive"
+                  checked={isActive === false}
+                  onChange={() => setIsActive(false)}
+                  className="w-4 h-4 text-teal-600 border-gray-300 focus:ring-teal-500"
+                />
+                Inactive
+              </label>
+            </div>
+          )}
+        </div>
+
         <div className="flex gap-2 justify-end pt-2">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => save.mutate({ name, color })} isLoading={save.isPending}>Save</Button>
+          <Button onClick={() => save.mutate({ name, color, isActive: hasNoProducts ? false : isActive })} isLoading={save.isPending}>Save</Button>
         </div>
       </div>
     </Modal>

@@ -31,11 +31,11 @@ class CategoryController {
     }
     async createCategory(req, res) {
         try {
-            const { name, color } = req.body;
+            const { name, color, isActive } = req.body;
             if (!name) {
                 return res.status(400).json((0, response_util_1.errorResponse)('Missing required fields', 'Name is required'));
             }
-            const category = await this.categoryService.createCategory({ name, color });
+            const category = await this.categoryService.createCategory({ name, color, isActive });
             res.status(201).json((0, response_util_1.successResponse)('Category created successfully', category));
         }
         catch (error) {

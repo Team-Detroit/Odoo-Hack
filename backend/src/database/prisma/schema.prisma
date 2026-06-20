@@ -82,6 +82,8 @@ model Category {
 
   color String?
 
+  isActive Boolean @default(true)
+
   products Product[]
 
   createdAt DateTime @default(now())
