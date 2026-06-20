@@ -16,8 +16,6 @@ A production-inspired Point-of-Sale (POS) system for cafes built with **Node.js 
 - **Self-Ordering**: QR-code-based table self-ordering
 - **Real-Time Updates**: Socket.IO for live order and table status
 
----
-
 ## 🛠️ Tech Stack
 
 | Layer | Technology | Purpose |
