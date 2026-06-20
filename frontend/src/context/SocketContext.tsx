@@ -26,12 +26,13 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   useEffect(() => {
-    // Auto-connect on mount
-    connectSocket();
+    // Only connect if backend is available
+    const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+    fetch(SOCKET_URL + '/health', { signal: AbortSignal.timeout(1000) })
+      .then(() => connectSocket())
+      .catch(() => console.info('Socket server not available — skipping connection'));
 
-    return () => {
-      disconnectSocket();
-    };
+    return () => { disconnectSocket(); };
   }, []);
 
   return <SocketContext.Provider value={value}>{children}</SocketContext.Provider>;

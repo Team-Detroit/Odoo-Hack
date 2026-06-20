@@ -1,22 +1,14 @@
 import React from 'react';
 
-interface ToggleProps {
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  label?: string;
-}
-
-export const Toggle: React.FC<ToggleProps> = ({ checked, onChange, label }) => {
-  return (
-    <label className="flex items-center gap-3 cursor-pointer">
-      <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-300 transition-colors" style={{ backgroundColor: checked ? '#14b8a6' : '#d1d5db' }}>
-        <span
-          className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
-            checked ? 'translate-x-6' : 'translate-x-1'
-          }`}
-        />
-      </div>
-      {label && <span className="text-sm font-medium text-gray-700">{label}</span>}
-    </label>
-  );
-};
+interface ToggleProps { checked: boolean; onChange: (v: boolean) => void; label?: string; disabled?: boolean; }
+export const Toggle: React.FC<ToggleProps> = ({ checked, onChange, label, disabled }) => (
+  <label className="flex items-center gap-2 cursor-pointer">
+    <div
+      onClick={() => !disabled && onChange(!checked)}
+      className={`relative w-10 h-6 rounded-full transition-colors ${checked ? 'bg-teal-500' : 'bg-gray-300'} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+    >
+      <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${checked ? 'translate-x-5' : 'translate-x-1'}`} />
+    </div>
+    {label && <span className="text-sm text-gray-700">{label}</span>}
+  </label>
+);

@@ -7,8 +7,8 @@ export const paymentMethodService = {
     return response.data;
   },
 
-  update: async (type: string, data: UpdatePaymentMethodRequest): Promise<PaymentMethod> => {
-    const response = await axiosInstance.put(`/payment-methods/${type}`, data);
+  update: async (data: UpdatePaymentMethodRequest): Promise<PaymentMethod> => {
+    const response = await axiosInstance.put(`/payment-methods/${data.type}`, data);
     return response.data;
   },
 

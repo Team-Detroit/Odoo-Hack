@@ -1,38 +1,11 @@
 import React from 'react';
 
-interface EmptyStateProps {
-  icon?: React.ReactNode;
-  title: string;
-  message: string;
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
-}
-
-export const EmptyState: React.FC<EmptyStateProps> = ({
-  icon,
-  title,
-  message,
-  action,
-}) => {
-  return (
-    <div className="flex flex-col items-center justify-center h-full py-12">
-      {icon && (
-        <div className="text-6xl mb-4 opacity-50">
-          {icon}
-        </div>
-      )}
-      <h3 className="text-xl font-semibold text-gray-700 mb-2">{title}</h3>
-      <p className="text-gray-500 text-center mb-6 max-w-sm">{message}</p>
-      {action && (
-        <button
-          onClick={action.onClick}
-          className="px-6 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors"
-        >
-          {action.label}
-        </button>
-      )}
-    </div>
-  );
-};
+interface EmptyStateProps { title: string; description?: string; action?: React.ReactNode; icon?: React.ReactNode; }
+export const EmptyState: React.FC<EmptyStateProps> = ({ title, description, action, icon }) => (
+  <div className="flex flex-col items-center justify-center py-16 text-center">
+    <div className="mb-4 text-gray-300">{icon ?? <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0H4" /></svg>}</div>
+    <h3 className="text-base font-medium text-gray-700 mb-1">{title}</h3>
+    {description && <p className="text-sm text-gray-400 mb-4">{description}</p>}
+    {action}
+  </div>
+);

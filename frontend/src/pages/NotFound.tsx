@@ -1,21 +1,14 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '../components/common/Button';
+import { Link } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
 
-export const NotFound: React.FC = () => {
-  const navigate = useNavigate();
-
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-6xl font-bold text-gray-800 mb-4">404</h1>
-        <p className="text-2xl text-gray-600 mb-2">Page Not Found</p>
-        <p className="text-gray-500 mb-8">The page you're looking for doesn't exist.</p>
-        <Button onClick={() => navigate(ROUTES.POS)}>
-          Go Back to POS
-        </Button>
-      </div>
-    </div>
-  );
-};
+export const NotFound: React.FC = () => (
+  <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-center p-6">
+    <div className="text-6xl mb-4">🫙</div>
+    <h1 className="text-4xl font-bold text-gray-800 mb-2">404</h1>
+    <p className="text-gray-500 mb-6">Page not found.</p>
+    <Link to={ROUTES.POS} className="px-5 py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors">
+      Go to POS
+    </Link>
+  </div>
+);

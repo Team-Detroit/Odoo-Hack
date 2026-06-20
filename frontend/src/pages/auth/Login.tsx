@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
+import { Button } from '../../components/common/Button';
 import { ROUTES } from '../../constants/routes';
 
 export const Login: React.FC = () => {
@@ -15,76 +15,33 @@ export const Login: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (!email || !password) {
-      setError('Please fill in all fields');
-      return;
-    }
-
-    login(
-      { email, password },
-      {
-        onSuccess: () => {
-          navigate(ROUTES.POS);
-        },
-        onError: (err: any) => {
-          setError(err?.message || 'Login failed');
-        },
-      }
-    );
+    if (!email || !password) { setError('Please fill in all fields'); return; }
+    login({ email, password }, {
+      onSuccess: () => navigate(ROUTES.POS),
+      onError: (err: unknown) => setError((err as Error)?.message ?? 'Login failed'),
+    });
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-8">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-teal-600 mb-2">☕ Odoo Cafe</h1>
-        <p className="text-gray-600">Point of Sale System</p>
+    <div className="bg-white rounded-2xl shadow-xl p-8 w-full">
+      <div className="text-center mb-7">
+        <div className="text-4xl mb-2">☕</div>
+        <h1 className="text-2xl font-bold text-gray-800">Odoo Cafe POS</h1>
+        <p className="text-sm text-gray-400 mt-1">Sign in to continue</p>
       </div>
-
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
-          type="email"
-          label="Email"
-          placeholder="Enter your email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={isLoading}
-        />
-
-        <Input
-          type="password"
-          label="Password"
-          placeholder="Enter your password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          disabled={isLoading}
-        />
-
-        {error && <div className="text-red-600 text-sm bg-red-50 p-3 rounded">{error}</div>}
-
-        <Button
-          type="submit"
-          className="w-full"
-          isLoading={isLoading}
-          disabled={isLoading}
-        >
-          Login
-        </Button>
+        <Input label="Email" type="email" placeholder="admin@cafe.com" value={email} onChange={e => setEmail(e.target.value)} disabled={isLoading} />
+        <Input label="Password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} disabled={isLoading} />
+        {error && <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>}
+        <Button type="submit" className="w-full" size="lg" isLoading={isLoading}>Sign In</Button>
       </form>
-
-      <div className="mt-6 text-center">
-        <p className="text-gray-600 text-sm">
-          Don't have an account?{' '}
-          <Link to={ROUTES.SIGNUP} className="text-teal-600 hover:underline font-medium">
-            Sign up
-          </Link>
-        </p>
-      </div>
-
-      <div className="mt-6 p-4 bg-blue-50 rounded-lg text-sm text-blue-700">
-        <p className="font-medium mb-2">Demo Credentials:</p>
-        <p>Email: admin@cafe.com or john@cafe.com</p>
-        <p>Password: Any password</p>
+      <p className="text-center text-sm text-gray-500 mt-5">
+        No account? <Link to={ROUTES.SIGNUP} className="text-teal-600 font-medium hover:underline">Sign up</Link>
+      </p>
+      <div className="mt-5 p-3 bg-blue-50 rounded-lg text-xs text-blue-600 space-y-1">
+        <p className="font-semibold">Demo credentials</p>
+        <p>Admin: admin@cafe.com / any password</p>
+        <p>Employee: john@cafe.com / any password</p>
       </div>
     </div>
   );

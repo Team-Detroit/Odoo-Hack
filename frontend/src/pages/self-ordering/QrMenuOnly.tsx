@@ -1,41 +1,41 @@
-import React from 'react';
-import { Button } from '../../components/common/Button';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { productService } from '../../services/productService';
+import { categoryService } from '../../services/categoryService';
 
 export const QrMenuOnly: React.FC = () => {
+  const { data: products = [] } = useQuery({ queryKey: ['products'], queryFn: productService.mockGetAll });
+  const { data: categories = [] } = useQuery({ queryKey: ['categories'], queryFn: categoryService.mockGetAll });
+  const [catFilter, setCatFilter] = useState('');
+
+  const filtered = products.filter(p => !catFilter || p.categoryId === catFilter);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 p-8">
-      <div className="container mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-orange-600 mb-2">☕ Odoo Cafe</h1>
-          <p className="text-gray-600">Menu</p>
+    <div className="min-h-screen bg-white">
+      <div className="bg-teal-700 text-white px-4 py-4 text-center">
+        <h1 className="text-xl font-bold">☕ Odoo Cafe — Menu</h1>
+        <p className="text-teal-200 text-sm mt-1">Browse our menu</p>
+      </div>
+      <div className="px-4 py-3">
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <button onClick={() => setCatFilter('')} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${!catFilter ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600'}`}>All</button>
+          {categories.map(c => (
+            <button key={c.id} onClick={() => setCatFilter(c.id)} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${catFilter === c.id ? 'text-white' : 'bg-gray-100 text-gray-600'}`} style={catFilter === c.id ? { backgroundColor: c.color } : {}}>{c.name}</button>
+          ))}
         </div>
-
-        {/* Menu Items */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="w-full h-32 bg-gray-200 rounded mb-3"></div>
-            <h3 className="font-semibold mb-1">Coffee</h3>
-            <p className="text-sm text-gray-600 mb-2">₹100</p>
-            <p className="text-xs text-gray-500">Ask staff to order</p>
+      </div>
+      <div className="px-4 pb-8 grid grid-cols-2 gap-3">
+        {filtered.map(p => (
+          <div key={p.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="h-28 flex items-center justify-center text-4xl" style={{ backgroundColor: (p.category?.color ?? '#6B7280') + '22' }}>🍽️</div>
+            <div className="p-3">
+              <p className="font-semibold text-sm text-gray-800">{p.name}</p>
+              <p className="text-xs text-gray-400 mb-1">{p.category?.name}</p>
+              {p.description && <p className="text-xs text-gray-400 mb-2 line-clamp-2">{p.description}</p>}
+              <p className="font-bold text-teal-600">₹{p.price}</p>
+            </div>
           </div>
-
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="w-full h-32 bg-gray-200 rounded mb-3"></div>
-            <h3 className="font-semibold mb-1">Tea</h3>
-            <p className="text-sm text-gray-600 mb-2">₹80</p>
-            <p className="text-xs text-gray-500">Ask staff to order</p>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="text-center mt-12">
-          <p className="text-gray-600 text-sm">
-            Please call staff to place your order
-          </p>
-          <Button variant="secondary" className="mt-4">
-            Call Staff
-          </Button>
-        </div>
+        ))}
       </div>
     </div>
   );

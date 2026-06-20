@@ -29,6 +29,14 @@ export const kdsService = {
     return response.data;
   },
 
+  mockGetAll: async (): Promise<KdsTicket[]> => {
+    return kdsService.mockGetTickets();
+  },
+
+  updateStage: async (id: string, stage: string): Promise<KdsTicket> => {
+    return kdsService.updateTicketStage(id, stage);
+  },
+
   mockGetTickets: async (): Promise<KdsTicket[]> => {
     return new Promise((resolve) => {
       setTimeout(() => {

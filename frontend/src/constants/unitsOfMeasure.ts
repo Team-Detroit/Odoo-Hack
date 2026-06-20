@@ -1,8 +1,8 @@
-export const UNITS_OF_MEASURE = {
-  PIECE: 'piece',
-  KG: 'kg',
-  LITRE: 'litre',
-} as const;
+export const UNITS_OF_MEASURE = [
+  { value: 'piece', label: 'Per Piece' },
+  { value: 'kg', label: 'Per Kg' },
+  { value: 'litre', label: 'Per Litre' },
+] as const;
 
 export const UNIT_LABELS: Record<string, string> = {
   piece: 'Per Piece',

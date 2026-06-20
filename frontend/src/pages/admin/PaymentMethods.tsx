@@ -1,57 +1,71 @@
 import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { paymentMethodService } from '../../services/paymentMethodService';
+import { PaymentMethod } from '../../types/paymentMethod';
 import { Toggle } from '../../components/common/Toggle';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
+import { Spinner } from '../../components/common/Spinner';
+
+const METHOD_ICONS: Record<string, string> = { cash: '💵', card: '💳', upi: '📱' };
+const METHOD_LABELS: Record<string, string> = { cash: 'Cash', card: 'Card / Digital', upi: 'UPI QR' };
 
 export const PaymentMethods: React.FC = () => {
-  const [cash, setCash] = useState(true);
-  const [card, setCard] = useState(true);
-  const [upi, setUpi] = useState(true);
-  const [upiId, setUpiId] = useState('cafe@ybl');
+  const qc = useQueryClient();
+  const { data = [], isLoading } = useQuery({ queryKey: ['paymentMethods'], queryFn: paymentMethodService.mockGetAll });
+  const [upiInputs, setUpiInputs] = useState<Record<string, string>>({});
+
+  const toggle = useMutation({
+    mutationFn: (m: PaymentMethod) => paymentMethodService.update({ type: m.type, isEnabled: !m.isEnabled, upiId: m.upiId }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['paymentMethods'] }),
+  });
+
+  const saveUpi = useMutation({
+    mutationFn: (m: PaymentMethod) => paymentMethodService.update({ type: m.type, isEnabled: m.isEnabled, upiId: upiInputs[m.id] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['paymentMethods'] }),
+  });
+
+  if (isLoading) return <div className="flex justify-center py-16"><Spinner /></div>;
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">Payment Methods</h1>
-
-      <div className="bg-white rounded-lg shadow p-6 space-y-6">
-        <div className="flex justify-between items-center pb-4 border-b">
-          <div>
-            <h3 className="font-semibold text-lg">Cash Payment</h3>
-            <p className="text-gray-600 text-sm">Accept cash payments</p>
-          </div>
-          <Toggle checked={cash} onChange={setCash} />
-        </div>
-
-        <div className="flex justify-between items-center pb-4 border-b">
-          <div>
-            <h3 className="font-semibold text-lg">Card Payment</h3>
-            <p className="text-gray-600 text-sm">Accept card/digital payments</p>
-          </div>
-          <Toggle checked={card} onChange={setCard} />
-        </div>
-
-        <div className="pb-4 border-b">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h3 className="font-semibold text-lg">UPI Payment</h3>
-              <p className="text-gray-600 text-sm">Accept UPI/QR payments</p>
+      <h2 className="text-lg font-semibold text-gray-800 mb-5">Payment Methods</h2>
+      <div className="space-y-4 max-w-xl">
+        {data.map((m) => (
+          <div key={m.id} className="bg-white border border-gray-200 rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{METHOD_ICONS[m.type]}</span>
+                <div>
+                  <p className="font-medium text-gray-800">{METHOD_LABELS[m.type]}</p>
+                  <p className="text-xs text-gray-400">{m.isEnabled ? 'Enabled' : 'Disabled'}</p>
+                </div>
+              </div>
+              <Toggle checked={m.isEnabled} onChange={() => toggle.mutate(m)} />
             </div>
-            <Toggle checked={upi} onChange={setUpi} />
+            {m.type === 'upi' && m.isEnabled && (
+              <div className="mt-4 border-t border-gray-100 pt-4 space-y-3">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="UPI ID e.g. cafe@ybl"
+                    value={upiInputs[m.id] ?? m.upiId ?? ''}
+                    onChange={e => setUpiInputs(p => ({ ...p, [m.id]: e.target.value }))}
+                  />
+                  <Button size="sm" onClick={() => saveUpi.mutate(m)} isLoading={saveUpi.isPending}>Save</Button>
+                </div>
+                {(m.upiId || upiInputs[m.id]) && (
+                  <div className="flex flex-col items-center gap-2 p-4 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-500">QR Preview</p>
+                    <div className="w-32 h-32 bg-white border-2 border-gray-200 rounded-lg flex items-center justify-center text-xs text-gray-400 text-center p-2">
+                      UPI: {m.upiId || upiInputs[m.id]}
+                    </div>
+                    <p className="text-xs text-gray-400">{m.upiId || upiInputs[m.id]}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-
-          {upi && (
-            <div className="mt-4 pl-4 border-l-2 border-teal-600">
-              <Input
-                label="UPI ID"
-                value={upiId}
-                onChange={(e) => setUpiId(e.target.value)}
-                placeholder="cafe@ybl"
-              />
-            </div>
-          )}
-        </div>
-
-        <Button className="w-full">Save Settings</Button>
+        ))}
       </div>
     </div>
   );

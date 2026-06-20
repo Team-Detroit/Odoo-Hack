@@ -11,131 +11,103 @@ import { KdsLayout } from '../layouts/KdsLayout';
 import { CustomerDisplayLayout } from '../layouts/CustomerDisplayLayout';
 import { SelfOrderLayout } from '../layouts/SelfOrderLayout';
 
-// Route Guards
+// Guards
 import { ProtectedRoute } from './ProtectedRoute';
 import { PublicRoute } from './PublicRoute';
 
-// Auth Pages
+// Auth
 import { Login } from '../pages/auth/Login';
 import { Signup } from '../pages/auth/Signup';
 
-// Admin Pages
+// Admin
 import { Dashboard } from '../pages/admin/Dashboard';
 import { Products } from '../pages/admin/Products';
 import { Categories } from '../pages/admin/Categories';
 import { PaymentMethods } from '../pages/admin/PaymentMethods';
 import { Floors } from '../pages/admin/Floors';
 import { Coupons } from '../pages/admin/Coupons';
-import { Promotions } from '../pages/admin/Promotions';
 import { Users } from '../pages/admin/Users';
 import { SelfOrderingSettings } from '../pages/admin/SelfOrderingSettings';
 import { Reports } from '../pages/admin/Reports';
 
-// POS Pages
+// POS
 import { OrderView } from '../pages/pos/OrderView';
 import { Orders } from '../pages/pos/Orders';
 import { OrderDetail } from '../pages/pos/OrderDetail';
 import { TableView } from '../pages/pos/TableView';
 import { Customers } from '../pages/pos/Customers';
 
-// KDS Pages
+// KDS
 import { KdsBoard } from '../pages/kds/KdsBoard';
 
-// Customer Display Pages
+// Customer Display
 import { CustomerDisplay } from '../pages/customer-display/CustomerDisplay';
 
-// Self Ordering Pages
+// Self Ordering
 import { SelfOrderMenu } from '../pages/self-ordering/SelfOrderMenu';
 import { QrMenuOnly } from '../pages/self-ordering/QrMenuOnly';
 
 // Not Found
 import { NotFound } from '../pages/NotFound';
 
-export const AppRoutes: React.FC = () => {
-  return (
-    <BrowserRouter>
-      <Routes>
-        {/* Auth Routes */}
-        <Route element={<AuthLayout />}>
-          <Route
-            path={ROUTES.LOGIN}
-            element={
-              <PublicRoute>
-                <Login />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path={ROUTES.SIGNUP}
-            element={
-              <PublicRoute>
-                <Signup />
-              </PublicRoute>
-            }
-          />
-        </Route>
+export const AppRoutes: React.FC = () => (
+  <BrowserRouter>
+    <Routes>
 
-        {/* Admin Routes */}
-        <Route
-          element={
-            <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
-              <AdminLayout />
-            </ProtectedRoute>
-          }
-        >
+      {/* Auth routes — public only */}
+      <Route element={<AuthLayout />}>
+        <Route path={ROUTES.LOGIN} element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path={ROUTES.SIGNUP} element={<PublicRoute><Signup /></PublicRoute>} />
+      </Route>
+
+      {/* Admin routes — admin role only */}
+      <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} />}>
+        <Route element={<AdminLayout />}>
           <Route path={ROUTES.ADMIN_DASHBOARD} element={<Dashboard />} />
           <Route path={ROUTES.ADMIN_PRODUCTS} element={<Products />} />
           <Route path={ROUTES.ADMIN_CATEGORIES} element={<Categories />} />
           <Route path={ROUTES.ADMIN_PAYMENT_METHODS} element={<PaymentMethods />} />
           <Route path={ROUTES.ADMIN_FLOORS} element={<Floors />} />
           <Route path={ROUTES.ADMIN_COUPONS} element={<Coupons />} />
-          <Route path={ROUTES.ADMIN_PROMOTIONS} element={<Promotions />} />
           <Route path={ROUTES.ADMIN_USERS} element={<Users />} />
           <Route path={ROUTES.ADMIN_SELF_ORDERING} element={<SelfOrderingSettings />} />
           <Route path={ROUTES.ADMIN_REPORTS} element={<Reports />} />
         </Route>
+      </Route>
 
-        {/* POS Routes */}
-        <Route
-          element={
-            <ProtectedRoute>
-              <PosLayout />
-            </ProtectedRoute>
-          }
-        >
+      {/* POS routes — any authenticated user */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<PosLayout />}>
           <Route path={ROUTES.POS} element={<OrderView />} />
           <Route path={ROUTES.POS_ORDERS} element={<Orders />} />
           <Route path={ROUTES.POS_ORDERS_DETAIL} element={<OrderDetail />} />
           <Route path={ROUTES.POS_TABLE_VIEW} element={<TableView />} />
           <Route path={ROUTES.POS_CUSTOMERS} element={<Customers />} />
         </Route>
+      </Route>
 
-        {/* KDS Routes */}
-        <Route
-          element={
-            <ProtectedRoute>
-              <KdsLayout />
-            </ProtectedRoute>
-          }
-        >
+      {/* KDS — any authenticated user */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<KdsLayout />}>
           <Route path={ROUTES.KDS} element={<KdsBoard />} />
         </Route>
+      </Route>
 
-        {/* Customer Display Routes */}
-        <Route element={<CustomerDisplayLayout />}>
-          <Route path={ROUTES.CUSTOMER_DISPLAY} element={<CustomerDisplay />} />
-        </Route>
+      {/* Customer Display — no auth */}
+      <Route element={<CustomerDisplayLayout />}>
+        <Route path={ROUTES.CUSTOMER_DISPLAY} element={<CustomerDisplay />} />
+      </Route>
 
-        {/* Self Ordering Routes */}
-        <Route element={<SelfOrderLayout />}>
-          <Route path={ROUTES.SELF_ORDER} element={<SelfOrderMenu />} />
-          <Route path={ROUTES.QR_MENU} element={<QrMenuOnly />} />
-        </Route>
+      {/* Self Ordering — no auth */}
+      <Route element={<SelfOrderLayout />}>
+        <Route path={ROUTES.SELF_ORDER} element={<SelfOrderMenu />} />
+        <Route path={ROUTES.QR_MENU} element={<QrMenuOnly />} />
+      </Route>
 
-        {/* Catch All */}
-        <Route path="/" element={<Navigate to={ROUTES.POS} replace />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </BrowserRouter>
-  );
-};
+      {/* Default */}
+      <Route path="/" element={<Navigate to={ROUTES.LOGIN} replace />} />
+      <Route path="*" element={<NotFound />} />
+
+    </Routes>
+  </BrowserRouter>
+);
