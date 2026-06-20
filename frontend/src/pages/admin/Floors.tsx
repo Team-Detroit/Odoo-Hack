@@ -251,7 +251,7 @@ export const Floors: React.FC = () => {
   // Delete a table locally
   const deleteTableLocal = (tableId: string) => {
     if (!currentFloorId) return;
-    const updatedList = currentTables.filter(t => t.id !== tableId);
+    const updatedList = currentTables.filter(t => t && t.id !== tableId);
     const newLocalTables = { ...localTables, [currentFloorId]: updatedList };
     setLocalTables(newLocalTables);
     localStorage.setItem(`odoo_cafe_tables_${currentFloorId}`, JSON.stringify(updatedList));
@@ -741,7 +741,7 @@ export const Floors: React.FC = () => {
             <div className="space-y-3">
               {serverFloors.map(floor => {
                 const tables = localTables[floor.id] || [];
-                const active = tables.filter(t => t.hasActiveOrder).length;
+                const active = tables.filter(t => t && t.hasActiveOrder).length;
                 const pct = tables.length ? Math.round((active / tables.length) * 100) : 0;
                 return (
                   <div key={floor.id} className="text-xs">
