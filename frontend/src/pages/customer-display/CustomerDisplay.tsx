@@ -1,99 +1,1093 @@
 import React, { useState, useEffect } from 'react';
-import { useSocket } from '../../hooks/useSocket';
+import axiosInstance from '../../lib/axios';
+import { productService } from '../../services/productService';
+import { categoryService } from '../../services/categoryService';
+import { tableService } from '../../services/tableService';
+import { sessionService } from '../../services/sessionService';
+import { Product } from '../../types/product';
+import { Table } from '../../types/table';
+import { Session } from '../../types/session';
+import { Category } from '../../types/category';
+import {
+  ShoppingBag,
+  CreditCard,
+  Smartphone,
+  CheckCircle,
+  RefreshCw,
+  X,
+  Plus,
+  Minus,
+  ArrowLeft,
+  ArrowRight,
+  ShoppingCart,
+  Percent,
+  Check,
+  AlertCircle,
+  HelpCircle
+} from 'lucide-react';
 
-type DisplayState = 'idle' | 'order' | 'payment' | 'complete';
+interface CartItem {
+  product: Product;
+  qty: number;
+}
 
-interface OrderData { items: { name: string; qty: number; price: number }[]; subtotal: number; tax: number; discount: number; total: number; }
-interface PaymentData { method: string; total: number; upiId?: string; }
+type CheckoutStep = 'menu' | 'dining_choice' | 'customer_info' | 'payment_choice' | 'payment_details' | 'processing' | 'success';
+
+const getProductImage = (name: string): string => {
+  const normalized = name.toLowerCase();
+  if (normalized.includes('espresso')) {
+    return 'https://images.unsplash.com/photo-1510707577719-0d85837a3d41?w=400&auto=format&fit=crop&q=80';
+  }
+  if (normalized.includes('cappuccino') || normalized.includes('coffee') || normalized.includes('latte')) {
+    return 'https://images.unsplash.com/photo-1534778101976-62847782c213?w=400&auto=format&fit=crop&q=80';
+  }
+  if (normalized.includes('croissant') || normalized.includes('pastry') || normalized.includes('bakery')) {
+    return 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400&auto=format&fit=crop&q=80';
+  }
+  if (normalized.includes('sandwich') || normalized.includes('burger')) {
+    return 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=400&auto=format&fit=crop&q=80';
+  }
+  if (normalized.includes('iced tea') || normalized.includes('tea') || normalized.includes('juice') || normalized.includes('drink')) {
+    return 'https://images.unsplash.com/photo-1499638472904-ea5c6178a300?w=400&auto=format&fit=crop&q=80';
+  }
+  return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80';
+};
 
 export const CustomerDisplay: React.FC = () => {
-  const socket = useSocket();
-  const [state, setState] = useState<DisplayState>('idle');
-  const [orderData, setOrderData] = useState<OrderData | null>(null);
-  const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
+  // DB States
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [tables, setTables] = useState<Table[]>([]);
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // App States
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [catFilter, setCatFilter] = useState<string>('');
+  const [search, setSearch] = useState<string>('');
+  const [step, setStep] = useState<CheckoutStep>('menu');
+  const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
+
+  // Checkout choices
+  const [diningOption, setDiningOption] = useState<'dine_in' | 'takeaway' | null>(null);
+  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+  const [paymentOption, setPaymentOption] = useState<'online' | 'counter' | null>(null);
+  const [paymentSubMethod, setPaymentSubMethod] = useState<'card' | 'upi' | null>(null);
+  
+  // UPI Payment states
+  const [upiRefNo, setUpiRefNo] = useState('');
+  
+  // Card Payment states
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+
+  // Customer details states
+  const [custName, setCustName] = useState('');
+  const [custEmail, setCustEmail] = useState('');
+  const [custPhone, setCustPhone] = useState('');
+
+  // Results
+  const [createdOrderNumber, setCreatedOrderNumber] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // Fetch initial data
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const [prods, cats, tbls, activeSess] = await Promise.all([
+        productService.getAll().catch(() => productService.mockProducts as any),
+        categoryService.getAll().catch(() => categoryService.mockCategories as any),
+        tableService.getAll().catch(() => []),
+        sessionService.getCurrentActive().catch(() => null)
+      ]);
+
+      setProducts(prods || []);
+      setCategories(cats || []);
+      setTables(tbls || []);
+      setSession(activeSess);
+    } catch (e) {
+      console.error('Error fetching customer display data', e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    socket.on('display:order', (data) => { setOrderData(data as OrderData); setState('order'); });
-    socket.on('display:payment', (data) => { setPaymentData(data as PaymentData); setState('payment'); });
-    socket.on('display:complete', () => setState('complete'));
-    socket.on('display:idle', () => { setState('idle'); setOrderData(null); setPaymentData(null); });
-    return () => {
-      socket.off('display:order');
-      socket.off('display:payment');
-      socket.off('display:complete');
-      socket.off('display:idle');
-    };
-  }, [socket]);
+    fetchData();
+  }, []);
 
-  // Demo: cycle through states for preview
-  const mockOrder: OrderData = { items: [{ name: 'Coffee', qty: 2, price: 100 }, { name: 'Samosa', qty: 1, price: 40 }], subtotal: 240, tax: 12, discount: 0, total: 252 };
+  // Filter products
+  const filtered = products.filter(p => {
+    const matchCat = !catFilter || p.categoryId === catFilter;
+    const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase());
+    return matchCat && matchSearch;
+  });
 
-  if (state === 'idle') return (
-    <div className="min-h-screen bg-teal-700 flex flex-col items-center justify-center text-white">
-      <div className="text-6xl mb-4">☕</div>
-      <h1 className="text-4xl font-bold mb-2">Odoo Cafe</h1>
-      <p className="text-teal-200 text-lg">Welcome! Your order will appear here.</p>
-      <button onClick={() => { setOrderData(mockOrder); setState('order'); }} className="mt-8 px-4 py-2 bg-white/20 rounded-lg text-sm hover:bg-white/30">Demo: Show Order</button>
-    </div>
-  );
+  // Cart actions
+  const addToCart = (p: Product) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.product.id === p.id);
+      if (existing) {
+        return prev.map(item => item.product.id === p.id ? { ...item, qty: item.qty + 1 } : item);
+      }
+      return [...prev, { product: p, qty: 1 }];
+    });
+  };
 
-  if (state === 'order' && orderData) return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="bg-teal-700 text-white px-6 py-4 flex items-center gap-3">
-        <span className="text-2xl">🧾</span>
-        <h2 className="text-xl font-bold">Your Order</h2>
+  const updateQty = (id: string, qty: number) => {
+    if (qty <= 0) {
+      setCart(prev => prev.filter(item => item.product.id !== id));
+    } else {
+      setCart(prev => prev.map(item => item.product.id === id ? { ...item, qty } : item));
+    }
+  };
+
+  const clearCart = () => setCart([]);
+
+  // Calculate totals
+  const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.qty, 0);
+  const tax = parseFloat((subtotal * 0.05).toFixed(2)); // 5% GST
+  const total = subtotal + tax;
+
+  const getCartCount = () => cart.reduce((sum, item) => sum + item.qty, 0);
+
+  // Submit Order to backend DB
+  const handlePlaceOrder = async () => {
+    try {
+      setStep('processing');
+      setErrorMsg('');
+
+      // Fetch or confirm active session
+      let activeSession = session;
+      if (!activeSession) {
+        activeSession = await sessionService.getCurrentActive();
+      }
+      if (!activeSession) {
+        // Fallback to finding any open session in database
+        const allSessions = await sessionService.getAll().catch(() => []);
+        const openSession = allSessions.find(s => s.status === 'OPEN' || s.isActive);
+        if (openSession) {
+          activeSession = openSession;
+        }
+      }
+
+      // If still no session, create one automatically so checkout doesn't fail
+      if (!activeSession) {
+        // Let's call /sessions backend endpoint to start one. We can check if employee/user exists
+        try {
+          const sessionsRes = await axiosInstance.post('/sessions', {
+            openingBalance: 1000
+          });
+          activeSession = sessionsRes.data.data?.session || sessionsRes.data;
+        } catch {
+          // If creation fails, we use a fake activeSession identifier to mock,
+          // but we will try to make the real call.
+        }
+      }
+
+      // Calculate totals for backend payload
+      const orderSubtotal = subtotal;
+      const orderTax = tax;
+      const orderTotal = total;
+
+      // Select a table. If Dine In, use selectedTable. If Takeaway or select is null, grab first table id.
+      let tblId = selectedTable?.id;
+      if (!tblId) {
+        tblId = tables.length > 0 ? tables[0].id : undefined;
+      }
+
+      if (!activeSession?.id) {
+        throw new Error('No active POS session found. Please open a session in the POS console first.');
+      }
+      if (!tblId) {
+        throw new Error('No restaurant tables found in the database. Please seed or add tables first.');
+      }
+
+      // 0. Register/create customer in DB if details provided
+      let customerId: string | undefined = undefined;
+      if (custName.trim()) {
+        try {
+          const customerRes = await axiosInstance.post('/customers', {
+            name: custName.trim(),
+            email: custEmail.trim() || undefined,
+            phone: custPhone.trim() || undefined
+          });
+          const customerData = customerRes.data.data?.customer || customerRes.data.data || customerRes.data;
+          if (customerData?.id) {
+            customerId = customerData.id;
+          }
+        } catch (err) {
+          console.error('Failed to create customer on backend, proceeding without customer linkage:', err);
+        }
+      }
+
+      // 1. Create order record
+      const orderRes = await axiosInstance.post('/orders', {
+        sessionId: activeSession.id,
+        tableId: tblId,
+        customerId: customerId,
+        subtotal: orderSubtotal,
+        tax: orderTax,
+        total: orderTotal,
+        discount: 0
+      });
+
+      const orderData = orderRes.data.data?.order || orderRes.data.data || orderRes.data;
+      if (!orderData?.id) {
+        throw new Error('Order creation failed on backend server.');
+      }
+
+      // 2. Add Order Items
+      for (const item of cart) {
+        await axiosInstance.post('/order-items', {
+          orderId: orderData.id,
+          productId: item.product.id,
+          quantity: item.qty,
+          price: item.product.price
+        });
+      }
+
+      // 3. Create payment record
+      const payMethod = paymentOption === 'online' 
+        ? (paymentSubMethod === 'upi' ? 'UPI' : 'CARD') 
+        : 'CASH';
+
+      const paymentRes = await axiosInstance.post('/payments', {
+        orderId: orderData.id,
+        method: payMethod,
+        amount: orderTotal
+      });
+
+      const paymentData = paymentRes.data.data?.payment || paymentRes.data;
+
+      // 4. Update statuses if paid online
+      if (paymentOption === 'online' && paymentData?.id) {
+        // Mark payment as PAID
+        await axiosInstance.patch(`/payments/${paymentData.id}/status`, {
+          status: 'PAID'
+        }).catch(err => console.error('Failed to update payment status', err));
+
+        // Mark order as PAID
+        await axiosInstance.put(`/orders/${orderData.id}`, {
+          status: 'PAID'
+        }).catch(err => console.error('Failed to update order status', err));
+      } else {
+        // Cash at counter - set order to SENT_TO_KITCHEN so it shows on kitchen display/POS
+        await axiosInstance.put(`/orders/${orderData.id}`, {
+          status: 'SENT_TO_KITCHEN'
+        }).catch(err => console.error('Failed to set order to kitchen status', err));
+      }
+
+      // Set results
+      setCreatedOrderNumber(orderData.orderNumber || orderData.id.slice(0, 8).toUpperCase());
+      setStep('success');
+      clearCart();
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg(err.message || 'An error occurred during order submission.');
+      setStep('menu');
+    }
+  };
+
+  const startCheckout = () => {
+    if (cart.length === 0) return;
+    setDiningOption(null);
+    setSelectedTable(null);
+    setPaymentOption(null);
+    setPaymentSubMethod(null);
+    setStep('dining_choice');
+  };
+
+  const resetAll = () => {
+    setCart([]);
+    setStep('menu');
+    setDiningOption(null);
+    setSelectedTable(null);
+    setPaymentOption(null);
+    setPaymentSubMethod(null);
+    setUpiRefNo('');
+    setCardNumber('');
+    setCardExpiry('');
+    setCardCvv('');
+    setCreatedOrderNumber('');
+    setErrorMsg('');
+    setCustName('');
+    setCustEmail('');
+    setCustPhone('');
+  };
+
+  // Render Loader
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+        <div className="w-12 h-12 border-4 border-odoo-teal border-t-transparent rounded-full animate-spin"></div>
+        <p className="mt-4 text-gray-500 font-semibold">Loading menu items from DB...</p>
       </div>
-      <div className="flex-1 p-6 max-w-lg mx-auto w-full">
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50"><tr>
-              <th className="px-4 py-3 text-left text-xs text-gray-500">Item</th>
-              <th className="px-4 py-3 text-center text-xs text-gray-500">Qty</th>
-              <th className="px-4 py-3 text-right text-xs text-gray-500">Price</th>
-            </tr></thead>
-            <tbody className="divide-y divide-gray-100">
-              {Array.isArray(orderData.items) && orderData.items.map((item, i) => (
-                <tr key={i}>
-                  <td className="px-4 py-3 font-medium">{item.name}</td>
-                  <td className="px-4 py-3 text-center">{item.qty}</td>
-                  <td className="px-4 py-3 text-right">₹{(item.price * item.qty).toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="px-4 py-3 border-t space-y-1 text-sm">
-            <div className="flex justify-between text-gray-500"><span>Subtotal</span><span>₹{orderData.subtotal.toFixed(2)}</span></div>
-            <div className="flex justify-between text-gray-500"><span>Tax</span><span>₹{orderData.tax.toFixed(2)}</span></div>
-            {orderData.discount > 0 && <div className="flex justify-between text-green-600"><span>Discount</span><span>−₹{orderData.discount.toFixed(2)}</span></div>}
-            <div className="flex justify-between font-bold text-lg border-t pt-2"><span>Total</span><span className="text-teal-600">₹{orderData.total.toFixed(2)}</span></div>
+    );
+  }
+
+  // Render Menu View
+  if (step === 'menu') {
+    return (
+      <div className="h-screen flex flex-col bg-gray-50 overflow-hidden font-sans">
+        {/* Header */}
+        <header className="bg-odoo-purple text-white px-6 py-4 flex items-center justify-between shrink-0 shadow-md">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="font-script text-3xl font-bold text-white">Odoo</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-odoo-purple bg-white px-2 py-0.5 rounded shadow-sm">Cafe</span>
+            </div>
+            <div className="h-6 w-px bg-white/20 hidden sm:block"></div>
+            <span className="text-xs text-purple-200 uppercase tracking-widest font-semibold hidden sm:inline">Self-Order Kiosk</span>
           </div>
+          <div className="flex items-center gap-4">
+            <div className="relative max-w-xs hidden sm:block">
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search products..."
+                className="w-56 px-4 py-1.5 text-sm bg-white/10 rounded-full text-white placeholder-purple-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-odoo-teal focus:bg-white focus:text-gray-900 focus:placeholder-gray-400 transition-all"
+              />
+              {search && (
+                <button onClick={() => setSearch('')} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            {!session && (
+              <span className="flex items-center gap-1 text-xs bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 px-3 py-1 rounded-full font-semibold">
+                <AlertCircle className="w-3.5 h-3.5" /> No active session
+              </span>
+            )}
+          </div>
+        </header>
+
+        {/* Content area */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Products Sidebar Grid */}
+          <main className="flex-1 flex flex-col p-4 overflow-hidden">
+            {/* Search (Mobile Only) */}
+            <div className="mb-3 sm:hidden">
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search products..."
+                className="w-full px-4 py-2 text-sm bg-white rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-odoo-teal"
+              />
+            </div>
+
+            {/* Category tabs */}
+            <div className="flex gap-2 overflow-x-auto pb-2 shrink-0 scrollbar-none">
+              <button
+                onClick={() => setCatFilter('')}
+                className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-250 cursor-pointer shadow-sm border ${
+                  !catFilter
+                    ? 'bg-odoo-teal text-white border-odoo-teal'
+                    : 'bg-white text-gray-700 border-gray-200 hover:border-odoo-teal hover:text-odoo-teal'
+                }`}
+              >
+                All Products
+              </button>
+              {categories.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => setCatFilter(c.id)}
+                  className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-250 cursor-pointer shadow-sm border ${
+                    catFilter === c.id
+                      ? 'text-white border-transparent'
+                      : 'bg-white text-gray-700 border-gray-200 hover:border-odoo-teal hover:text-odoo-teal'
+                  }`}
+                  style={catFilter === c.id ? { backgroundColor: c.color || '#00A09D' } : {}}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Products Grid */}
+            <div className="flex-1 overflow-y-auto mt-4 pr-1">
+              {filtered.length === 0 ? (
+                <div className="text-center py-20 bg-white border border-gray-200 rounded-2xl p-6">
+                  <span className="text-4xl">🔍</span>
+                  <p className="text-gray-400 font-semibold mt-2">No matching products found</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-20 sm:pb-4">
+                  {filtered.map(p => {
+                    const cartItem = cart.find(item => item.product.id === p.id);
+                    return (
+                      <div
+                        key={p.id}
+                        className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:border-odoo-teal hover:shadow-md transition-all duration-300 flex flex-col justify-between"
+                      >
+                        <div className="w-full h-28 bg-gray-100 overflow-hidden relative">
+                          <img
+                            src={getProductImage(p.name)}
+                            alt={p.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="p-3 flex-1 flex flex-col justify-between">
+                          <div>
+                            <h3 className="font-bold text-gray-800 text-sm truncate">{p.name}</h3>
+                            <p className="text-xs text-gray-400 mt-0.5 truncate">{p.description || 'Fresh & delicious'}</p>
+                          </div>
+                          <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
+                            <span className="font-extrabold text-odoo-teal text-sm">₹{p.price.toFixed(2)}</span>
+                            {cartItem ? (
+                              <div className="flex items-center bg-teal-50 border border-teal-200 rounded-lg p-0.5 shadow-sm">
+                                <button
+                                  onClick={() => updateQty(p.id, cartItem.qty - 1)}
+                                  className="w-6 h-6 bg-white rounded text-odoo-teal hover:bg-teal-100 text-sm font-bold flex items-center justify-center transition-colors cursor-pointer"
+                                >
+                                  −
+                                </button>
+                                <span className="w-6 text-center text-xs font-bold text-teal-800">{cartItem.qty}</span>
+                                <button
+                                  onClick={() => updateQty(p.id, cartItem.qty + 1)}
+                                  className="w-6 h-6 bg-white rounded text-odoo-teal hover:bg-teal-100 text-sm font-bold flex items-center justify-center transition-colors cursor-pointer"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => addToCart(p)}
+                                className="px-3.5 py-1.5 bg-odoo-teal text-white rounded-lg text-xs font-bold hover:bg-odoo-teal-hover transition-colors shadow-sm cursor-pointer"
+                              >
+                                + Add
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </main>
+
+          {/* Desktop Cart Sidebar (Right) */}
+          <aside className="w-88 bg-white border-l border-gray-200 flex flex-col shrink-0 shadow-lg hidden sm:flex">
+            <div className="px-5 py-4 border-b border-gray-150 flex items-center justify-between bg-gray-50/50">
+              <h3 className="font-bold text-gray-800 text-sm uppercase tracking-wider flex items-center gap-2">
+                <ShoppingCart className="w-4 h-4 text-odoo-purple" /> Your Cart
+              </h3>
+              {cart.length > 0 && (
+                <button
+                  onClick={clearCart}
+                  className="text-xs text-red-500 hover:text-red-700 font-semibold cursor-pointer transition-colors"
+                >
+                  Clear All
+                </button>
+              )}
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+              {cart.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center text-gray-400">
+                  <span className="text-5xl mb-2">🛒</span>
+                  <p className="text-sm font-semibold">Your cart is empty</p>
+                  <p className="text-xs text-gray-400 mt-1 max-w-xs">Browse the categories to add delicious drinks & food items!</p>
+                </div>
+              ) : (
+                cart.map(item => (
+                  <div key={item.product.id} className="flex items-center gap-3 py-3 border-b border-gray-100 last:border-0">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-gray-800 truncate">{item.product.name}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">₹{item.product.price.toFixed(2)} each</p>
+                    </div>
+                    <div className="flex items-center bg-gray-100 p-0.5 rounded-lg">
+                      <button
+                        onClick={() => updateQty(item.product.id, item.qty - 1)}
+                        className="w-5.5 h-5.5 rounded bg-white text-gray-600 hover:bg-gray-200 text-xs font-bold flex items-center justify-center shadow-sm cursor-pointer"
+                      >
+                        −
+                      </button>
+                      <span className="w-6 text-center text-xs font-bold text-gray-800">{item.qty}</span>
+                      <button
+                        onClick={() => updateQty(item.product.id, item.qty + 1)}
+                        className="w-5.5 h-5.5 rounded bg-white text-gray-600 hover:bg-gray-200 text-xs font-bold flex items-center justify-center shadow-sm cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <p className="text-xs font-extrabold text-gray-800 w-16 text-right">
+                      ₹{(item.product.price * item.qty).toFixed(2)}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {cart.length > 0 && (
+              <div className="border-t border-gray-150 p-5 space-y-4 bg-gray-50/50">
+                <div className="space-y-1.5 text-xs font-semibold text-gray-600">
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>₹{subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>GST (5%)</span>
+                    <span>₹{tax.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between font-extrabold text-gray-800 text-sm pt-2 border-t border-gray-200">
+                    <span>Total Amount</span>
+                    <span className="text-odoo-teal">₹{total.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={startCheckout}
+                  className="w-full py-3 bg-odoo-purple text-white rounded-xl font-bold shadow-md hover:bg-odoo-purple-hover active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer text-sm"
+                >
+                  Checkout Order <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </aside>
         </div>
-        <button onClick={() => setState('payment')} className="w-full py-2 bg-teal-600 text-white rounded-lg text-sm hover:bg-teal-700">Demo: Go to Payment</button>
-      </div>
-    </div>
-  );
 
-  if (state === 'payment') return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
-      <div className="bg-white rounded-2xl border border-gray-200 p-8 max-w-sm w-full text-center">
-        <div className="text-4xl mb-3">💳</div>
-        <h2 className="text-xl font-bold text-gray-800 mb-1">Payment</h2>
-        <p className="text-3xl font-bold text-teal-600 my-4">₹{paymentData?.total.toFixed(2) ?? mockOrder.total.toFixed(2)}</p>
-        {paymentData?.method === 'upi' && (
-          <div className="w-32 h-32 bg-gray-100 rounded-xl mx-auto mb-4 flex items-center justify-center text-gray-400">UPI QR</div>
+        {/* Mobile Sticky Cart Summary Bar */}
+        {cart.length > 0 && (
+          <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex items-center justify-between shadow-2xl z-30">
+            <div onClick={() => setIsMobileCartOpen(true)} className="flex items-center gap-2.5 cursor-pointer">
+              <div className="relative bg-teal-100 text-odoo-teal p-2 rounded-xl">
+                <ShoppingCart className="w-5 h-5" />
+                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-bold">
+                  {getCartCount()}
+                </span>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Total Due</p>
+                <p className="text-sm font-extrabold text-gray-800">₹{total.toFixed(2)}</p>
+              </div>
+            </div>
+            <button
+              onClick={startCheckout}
+              className="px-6 py-2.5 bg-odoo-purple text-white rounded-xl text-xs font-bold shadow-md hover:bg-odoo-purple-hover active:scale-95 transition-all"
+            >
+              Checkout Now
+            </button>
+          </div>
         )}
-        <p className="text-sm text-gray-500">Please complete your payment at the counter.</p>
-        <button onClick={() => setState('complete')} className="mt-4 w-full py-2 bg-teal-600 text-white rounded-lg text-sm hover:bg-teal-700">Demo: Payment Done</button>
-      </div>
-    </div>
-  );
 
+        {/* Mobile Cart Slider Drawer */}
+        {isMobileCartOpen && (
+          <div className="fixed inset-0 bg-black/50 z-40 sm:hidden flex items-end">
+            <div className="bg-white rounded-t-3xl w-full max-h-[80vh] flex flex-col overflow-hidden animate-slide-up shadow-2xl">
+              <div className="px-5 py-4 border-b border-gray-150 flex items-center justify-between bg-gray-50/50">
+                <h3 className="font-bold text-gray-800 text-sm uppercase tracking-wider flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4 text-odoo-purple" /> Your Cart ({getCartCount()})
+                </h3>
+                <button
+                  onClick={() => setIsMobileCartOpen(false)}
+                  className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                {cart.map(item => (
+                  <div key={item.product.id} className="flex items-center gap-3 py-3 border-b border-gray-100 last:border-0">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-gray-800 truncate">{item.product.name}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">₹{item.product.price.toFixed(2)} each</p>
+                    </div>
+                    <div className="flex items-center bg-gray-100 p-0.5 rounded-lg">
+                      <button
+                        onClick={() => updateQty(item.product.id, item.qty - 1)}
+                        className="w-5 h-5 rounded bg-white text-gray-600 hover:bg-gray-200 text-xs font-bold flex items-center justify-center cursor-pointer shadow-xs"
+                      >
+                        −
+                      </button>
+                      <span className="w-6 text-center text-xs font-bold text-gray-800">{item.qty}</span>
+                      <button
+                        onClick={() => updateQty(item.product.id, item.qty + 1)}
+                        className="w-5 h-5 rounded bg-white text-gray-600 hover:bg-gray-200 text-xs font-bold flex items-center justify-center cursor-pointer shadow-xs"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <p className="text-xs font-extrabold text-gray-800 w-16 text-right">
+                      ₹{(item.product.price * item.qty).toFixed(2)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <div className="border-t border-gray-150 p-5 space-y-4 bg-gray-50/50">
+                <div className="space-y-1.5 text-xs font-semibold text-gray-600">
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>₹{subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>GST (5%)</span>
+                    <span>₹{tax.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between font-extrabold text-gray-800 text-sm pt-2 border-t border-gray-200">
+                    <span>Total Amount</span>
+                    <span className="text-odoo-teal">₹{total.toFixed(2)}</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsMobileCartOpen(false);
+                    startCheckout();
+                  }}
+                  className="w-full py-3 bg-odoo-purple text-white rounded-xl font-bold shadow-md hover:bg-odoo-purple-hover"
+                >
+                  Proceed to Checkout
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Global Error Banner */}
+        {errorMsg && (
+          <div className="fixed bottom-20 left-4 right-4 sm:bottom-4 sm:right-4 sm:left-auto bg-red-50 border border-red-200 rounded-xl p-4 shadow-xl z-50 max-w-sm flex gap-3 items-start">
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-xs font-bold text-red-800">Checkout Error</h4>
+              <p className="text-xs text-red-600 mt-0.5 leading-relaxed">{errorMsg}</p>
+            </div>
+            <button onClick={() => setErrorMsg('')} className="text-red-400 hover:text-red-600 p-0.5 ml-auto">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Render Multi-step Checkout screens
   return (
-    <div className="min-h-screen bg-teal-700 flex flex-col items-center justify-center text-white">
-      <div className="text-6xl mb-4">✅</div>
-      <h1 className="text-3xl font-bold mb-2">Thank You!</h1>
-      <p className="text-teal-200">Your order has been paid. Enjoy your meal!</p>
-      <button onClick={() => setState('idle')} className="mt-8 px-4 py-2 bg-white/20 rounded-lg text-sm hover:bg-white/30">Reset</button>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 sm:p-6 font-sans">
+      <div className="bg-white border border-gray-200 shadow-2xl rounded-3xl w-full max-w-2xl overflow-hidden flex flex-col justify-between min-h-[500px]">
+        {/* Checkout Header */}
+        <header className="bg-odoo-purple text-white px-6 py-4 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="font-script text-2xl font-bold text-white">Odoo</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-odoo-purple bg-white px-1.5 py-0.5 rounded shadow-sm">Cafe</span>
+          </div>
+          <span className="text-xs text-purple-200 uppercase tracking-widest font-semibold hidden sm:inline">Checkout Flow</span>
+          {step !== 'processing' && step !== 'success' && (
+            <button
+              onClick={() => setStep('menu')}
+              className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-all cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </header>
+
+        {/* Checkout Steps Body */}
+        <div className="flex-1 p-6 flex flex-col justify-center">
+          {/* STEP 1: DINE IN vs TAKEAWAY */}
+          {step === 'dining_choice' && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-gray-800">Where will you enjoy your meal?</h2>
+                <p className="text-xs text-gray-400 mt-1">Choose your preference to proceed</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  onClick={() => {
+                    setDiningOption('dine_in');
+                    if (tables.length > 0) {
+                      setSelectedTable(tables[0]);
+                    }
+                  }}
+                  className={`border-2 rounded-2xl p-6 text-center hover:border-odoo-teal hover:bg-teal-50/20 transition-all duration-350 cursor-pointer flex flex-col items-center group ${
+                    diningOption === 'dine_in' ? 'border-odoo-teal bg-teal-50/30' : 'border-gray-250 bg-white'
+                  }`}
+                >
+                  <span className="text-5xl group-hover:scale-110 transition-transform">🍽️</span>
+                  <h3 className="font-extrabold text-sm text-gray-800 mt-3">Dine In</h3>
+                  <p className="text-xs text-gray-400 mt-1 max-w-[200px]">Eat comfortably at one of our tables.</p>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setDiningOption('takeaway');
+                    setSelectedTable(null);
+                  }}
+                  className={`border-2 rounded-2xl p-6 text-center hover:border-odoo-teal hover:bg-teal-50/20 transition-all duration-350 cursor-pointer flex flex-col items-center group ${
+                    diningOption === 'takeaway' ? 'border-odoo-teal bg-teal-50/30' : 'border-gray-250 bg-white'
+                  }`}
+                >
+                  <span className="text-5xl group-hover:scale-110 transition-transform">🥡</span>
+                  <h3 className="font-extrabold text-sm text-gray-800 mt-3">Takeaway</h3>
+                  <p className="text-xs text-gray-400 mt-1 max-w-[200px]">Pack and pick up your order to go.</p>
+                </button>
+              </div>
+
+              {/* Dine In - Table Grid Selection */}
+              {diningOption === 'dine_in' && (
+                <div className="space-y-3 pt-3 border-t border-gray-100">
+                  <p className="text-xs font-bold text-gray-600 text-center uppercase tracking-wide">Select your Table Number</p>
+                  {tables.length === 0 ? (
+                    <p className="text-xs text-yellow-600 bg-yellow-50 border border-yellow-250 rounded-lg p-2 text-center">
+                      No tables found in the database. A default table will be assigned automatically.
+                    </p>
+                  ) : (
+                    <div className="flex gap-2 flex-wrap justify-center max-h-[120px] overflow-y-auto p-1">
+                      {tables.map(t => (
+                        <button
+                          key={t.id}
+                          onClick={() => setSelectedTable(t)}
+                          className={`w-12 h-12 rounded-xl text-xs font-bold border-2 transition-all cursor-pointer flex items-center justify-center ${
+                            selectedTable?.id === t.id
+                              ? 'border-odoo-teal bg-odoo-teal text-white shadow-md shadow-teal-100'
+                              : 'border-gray-200 bg-white text-gray-700 hover:border-odoo-teal hover:text-odoo-teal'
+                          }`}
+                        >
+                          T{t.tableNumber}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Navigation */}
+              <div className="flex justify-end pt-4 border-t border-gray-100">
+                <button
+                  disabled={!diningOption || (diningOption === 'dine_in' && tables.length > 0 && !selectedTable)}
+                  onClick={() => setStep('customer_info')}
+                  className="px-6 py-2.5 bg-odoo-teal text-white rounded-xl text-xs font-bold hover:bg-odoo-teal-hover transition-colors shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Continue <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP: CUSTOMER INFO */}
+          {step === 'customer_info' && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-gray-800">Your Contact Details</h2>
+                <p className="text-xs text-gray-400 mt-1">Please enter your details to proceed</p>
+              </div>
+
+              <div className="space-y-4 max-w-sm mx-auto">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Full Name <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={custName}
+                    onChange={e => setCustName(e.target.value)}
+                    placeholder="Enter your name"
+                    className="w-full px-4 py-2.5 text-xs bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-odoo-teal"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    value={custEmail}
+                    onChange={e => setCustEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    className="w-full px-4 py-2.5 text-xs bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-odoo-teal"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Phone Number</label>
+                  <input
+                    type="tel"
+                    value={custPhone}
+                    onChange={e => setCustPhone(e.target.value)}
+                    placeholder="Enter phone number"
+                    className="w-full px-4 py-2.5 text-xs bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-odoo-teal"
+                  />
+                </div>
+              </div>
+
+              {/* Navigation */}
+              <div className="flex justify-between pt-4 border-t border-gray-100">
+                <button
+                  onClick={() => setStep('dining_choice')}
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+                <button
+                  disabled={!custName.trim()}
+                  onClick={() => setStep('payment_choice')}
+                  className="px-6 py-2.5 bg-odoo-teal text-white rounded-xl text-xs font-bold hover:bg-odoo-teal-hover transition-colors shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Continue <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: PAYMENT METHOD CHOICE */}
+          {step === 'payment_choice' && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-gray-800">Select payment method</h2>
+                <p className="text-xs text-gray-400 mt-1">Total amount due: <span className="font-bold text-odoo-teal">₹{total.toFixed(2)}</span></p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  onClick={() => {
+                    setPaymentOption('online');
+                    setPaymentSubMethod('upi'); // default
+                  }}
+                  className={`border-2 rounded-2xl p-6 text-center hover:border-odoo-teal hover:bg-teal-50/20 transition-all duration-350 cursor-pointer flex flex-col items-center group ${
+                    paymentOption === 'online' ? 'border-odoo-teal bg-teal-50/30' : 'border-gray-250 bg-white'
+                  }`}
+                >
+                  <span className="text-5xl group-hover:scale-110 transition-transform">💳</span>
+                  <h3 className="font-extrabold text-sm text-gray-800 mt-3">Online Pay</h3>
+                  <p className="text-xs text-gray-400 mt-1 max-w-[200px]">Pay securely here using Card or UPI.</p>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setPaymentOption('counter');
+                    setPaymentSubMethod(null);
+                  }}
+                  className={`border-2 rounded-2xl p-6 text-center hover:border-odoo-teal hover:bg-teal-50/20 transition-all duration-350 cursor-pointer flex flex-col items-center group ${
+                    paymentOption === 'counter' ? 'border-odoo-teal bg-teal-50/30' : 'border-gray-250 bg-white'
+                  }`}
+                >
+                  <span className="text-5xl group-hover:scale-110 transition-transform">💵</span>
+                  <h3 className="font-extrabold text-sm text-gray-800 mt-3">Pay at Counter</h3>
+                  <p className="text-xs text-gray-400 mt-1 max-w-[200px]">Collect token and pay Cash/Card at the counter.</p>
+                </button>
+              </div>
+
+              {/* Navigation */}
+              <div className="flex justify-between pt-4 border-t border-gray-100">
+                <button
+                  onClick={() => setStep('customer_info')}
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+                <button
+                  disabled={!paymentOption}
+                  onClick={() => {
+                    if (paymentOption === 'online') {
+                      setStep('payment_details');
+                    } else {
+                      handlePlaceOrder();
+                    }
+                  }}
+                  className="px-6 py-2.5 bg-odoo-teal text-white rounded-xl text-xs font-bold hover:bg-odoo-teal-hover transition-colors shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {paymentOption === 'online' ? 'Continue' : 'Place Order'} <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: DETAILED PAYMENT DETAILS (UPI/Card Scanner) */}
+          {step === 'payment_details' && (
+            <div className="space-y-5">
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-gray-800">Complete Online Payment</h2>
+                <p className="text-xs text-gray-400 mt-1">Secure transactional gateway</p>
+              </div>
+
+              {/* Tab Selector: UPI vs CARD */}
+              <div className="flex border border-gray-200 rounded-xl overflow-hidden p-0.5 max-w-sm mx-auto bg-gray-50">
+                <button
+                  onClick={() => setPaymentSubMethod('upi')}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    paymentSubMethod === 'upi' ? 'bg-white text-odoo-teal shadow-xs' : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  <Smartphone className="w-3.5 h-3.5" /> UPI QR Code
+                </button>
+                <button
+                  onClick={() => setPaymentSubMethod('card')}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    paymentSubMethod === 'card' ? 'bg-white text-odoo-teal shadow-xs' : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  <CreditCard className="w-3.5 h-3.5" /> Credit/Debit Card
+                </button>
+              </div>
+
+              <div className="border border-gray-150 rounded-2xl p-5 bg-gray-50/50 max-w-md mx-auto">
+                {/* UPI QR Display */}
+                {paymentSubMethod === 'upi' ? (
+                  <div className="space-y-4 text-center">
+                    <div className="bg-white p-3 rounded-xl inline-block border border-gray-200 shadow-sm mx-auto">
+                      {/* Interactive Simulated QR */}
+                      <div className="w-36 h-36 bg-gray-100 flex flex-col items-center justify-center relative p-1">
+                        <div className="absolute inset-2 border-2 border-black border-dashed opacity-20"></div>
+                        {/* Fake QR blocks */}
+                        <div className="grid grid-cols-5 gap-1.5 w-full h-full p-2">
+                          {Array.from({ length: 25 }).map((_, i) => (
+                            <div
+                              key={i}
+                              className={`rounded-xs ${
+                                (i % 2 === 0 && i % 3 !== 0) || i === 0 || i === 4 || i === 20 || i === 24
+                                  ? 'bg-gray-800'
+                                  : 'bg-transparent'
+                              }`}
+                            ></div>
+                          ))}
+                        </div>
+                        {/* Middle Logo overlay */}
+                        <div className="absolute inset-0 m-auto w-10 h-10 bg-white border border-gray-200 rounded-lg flex items-center justify-center text-[10px] font-bold text-odoo-teal shadow-sm">
+                          UPI
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-gray-800">Scan QR via PhonePe / GPay / BHIM</p>
+                      <p className="text-[10px] text-gray-400">Merchant UPI ID: <span className="font-mono text-gray-600">odoocafe@upi</span></p>
+                      <p className="text-sm font-extrabold text-odoo-purple mt-1">Amount: ₹{total.toFixed(2)}</p>
+                    </div>
+
+                    <div className="pt-2">
+                      <input
+                        type="text"
+                        value={upiRefNo}
+                        onChange={e => setUpiRefNo(e.target.value)}
+                        placeholder="Enter UPI Ref No. (Optional)"
+                        className="w-full px-3 py-2 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-odoo-teal text-center"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  /* Card Inputs */
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Card Number</label>
+                      <input
+                        type="text"
+                        value={cardNumber}
+                        onChange={e => setCardNumber(e.target.value)}
+                        placeholder="4111 2222 3333 4444"
+                        maxLength={19}
+                        className="w-full px-3 py-2 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-odoo-teal"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Expiry Date</label>
+                        <input
+                          type="text"
+                          value={cardExpiry}
+                          onChange={e => setCardExpiry(e.target.value)}
+                          placeholder="MM/YY"
+                          maxLength={5}
+                          className="w-full px-3 py-2 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-odoo-teal"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">CVV</label>
+                        <input
+                          type="password"
+                          value={cardCvv}
+                          onChange={e => setCardCvv(e.target.value)}
+                          placeholder="***"
+                          maxLength={3}
+                          className="w-full px-3 py-2 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-odoo-teal"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Navigation */}
+              <div className="flex justify-between pt-4 border-t border-gray-100">
+                <button
+                  onClick={() => setStep('payment_choice')}
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+                <button
+                  onClick={handlePlaceOrder}
+                  className="px-6 py-2.5 bg-odoo-teal text-white rounded-xl text-xs font-bold hover:bg-odoo-teal-hover transition-colors shadow-md flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Check className="w-4 h-4" /> Confirm Payment
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4: PROCESSING LOADER */}
+          {step === 'processing' && (
+            <div className="space-y-4 text-center py-10">
+              <div className="w-16 h-16 border-4 border-odoo-teal border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <div>
+                <h3 className="font-bold text-gray-800 text-sm">Saving your order to database...</h3>
+                <p className="text-[11px] text-gray-400 mt-1">Please do not refresh or close this screen</p>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 5: SUCCESS & RECEIPT */}
+          {step === 'success' && (
+            <div className="space-y-6 text-center py-4">
+              <div className="flex flex-col items-center">
+                {/* Pulse Green Dot */}
+                <div className="relative">
+                  <div className="absolute inset-0 bg-green-500/20 rounded-full animate-ping scale-150"></div>
+                  <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-md relative z-10">
+                    ✓
+                  </div>
+                </div>
+                <h2 className="text-xl font-extrabold text-gray-800 mt-5">Order Placed Successfully!</h2>
+                <p className="text-xs text-gray-400 mt-1">Your order has been queued in the kitchen.</p>
+              </div>
+
+              {/* Summary invoice card */}
+              <div className="bg-gray-50 border border-gray-150 rounded-2xl p-4 max-w-sm mx-auto text-left text-xs space-y-3 font-sans">
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="text-gray-400">Order Token</span>
+                  <span className="font-mono font-bold text-gray-800">#{createdOrderNumber}</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="text-gray-400">Dining Style</span>
+                  <span className="font-bold text-gray-800">
+                    {diningOption === 'dine_in'
+                      ? `Dine In (Table ${selectedTable?.tableNumber || 1})`
+                      : 'Takeaway'}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="text-gray-400">Payment Status</span>
+                  <span className="font-bold text-green-600">
+                    {paymentOption === 'online' ? 'Paid Online' : 'Pay at Counter'}
+                  </span>
+                </div>
+                <div className="flex justify-between font-extrabold text-sm pt-1">
+                  <span>Grand Total</span>
+                  <span className="text-odoo-teal">₹{total.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-gray-100 flex justify-center">
+                <button
+                  onClick={resetAll}
+                  className="px-6 py-2.5 bg-odoo-purple text-white rounded-xl text-xs font-bold shadow-md hover:bg-odoo-purple-hover transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <RefreshCw className="w-4 h-4" /> Start New Order
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

@@ -96,6 +96,7 @@ export const AppRoutes: React.FC = () => (
       {/* Customer Display — no auth */}
       <Route element={<CustomerDisplayLayout />}>
         <Route path={ROUTES.CUSTOMER_DISPLAY} element={<CustomerDisplay />} />
+        <Route path="/Customer-Display" element={<CustomerDisplay />} />
       </Route>
 
       {/* Self Ordering — no auth */}
