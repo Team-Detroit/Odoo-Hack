@@ -131,13 +131,13 @@ export const Products: React.FC = () => {
       {/* ── Header ── */}
       <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-1">Administrative Panel</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-odoo-purple mb-1">Administrative Panel</p>
           <h1 className="text-2xl font-bold text-gray-900 leading-tight">Product Catalog Registry</h1>
           <p className="text-sm text-gray-400 mt-0.5">Configure pricing models, item taxes, unit of measures (UOMs), and images.</p>
         </div>
         <button
           onClick={() => { setEditing(undefined); setFormOpen(true); }}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold px-5 py-2.5 rounded-full shadow-md shadow-indigo-200 transition-colors uppercase tracking-wide"
+          className="flex items-center gap-2 bg-odoo-purple hover:bg-odoo-purple-hover text-white text-sm font-bold px-5 py-2.5 rounded-full shadow-sm transition-colors uppercase tracking-wide"
         >
           + Add New Product
         </button>
@@ -182,7 +182,7 @@ export const Products: React.FC = () => {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search catalog items..."
-            className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-full bg-white w-60 focus:outline-none focus:ring-2 focus:ring-indigo-200 placeholder-gray-300"
+            className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-full bg-white w-60 focus:outline-none focus:ring-2 focus:ring-odoo-purple/30 placeholder-gray-300"
           />
         </div>
 
@@ -264,7 +264,7 @@ export const Products: React.FC = () => {
                     <>
                       <p className="text-sm text-gray-700 font-medium">₹{p.cost.toFixed(2)}</p>
                       {m !== null && (
-                        <p className="text-xs text-indigo-500 font-semibold">({m}% Margin)</p>
+                        <p className="text-xs text-odoo-purple font-semibold">({m}% Margin)</p>
                       )}
                     </>
                   ) : (
@@ -282,7 +282,7 @@ export const Products: React.FC = () => {
                 <div className="flex items-center gap-2 justify-end">
                   <button
                     onClick={() => { setEditing(p); setFormOpen(true); }}
-                    className="flex items-center gap-1.5 text-xs font-semibold text-indigo-500 hover:text-indigo-700 border border-indigo-100 hover:border-indigo-300 rounded-lg px-3 py-1.5 transition-colors bg-indigo-50/60 hover:bg-indigo-50"
+                    className="flex items-center gap-1.5 text-xs font-semibold text-odoo-purple hover:text-odoo-purple-hover border border-odoo-purple-light rounded-lg px-3 py-1.5 transition-colors bg-odoo-purple-light hover:bg-odoo-purple-light/80"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
