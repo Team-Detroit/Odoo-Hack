@@ -32,7 +32,7 @@ class OrderController {
     }
     async createOrder(req, res) {
         try {
-            const { sessionId, tableId, customerId, subtotal, discount, tax, total, items } = req.body;
+            const { sessionId, tableId, customerId, subtotal, discount, tax, total, items, selfOrder, paymentTag } = req.body;
             if (!sessionId || !tableId || subtotal == null || total == null) {
                 return res.status(400).json((0, response_util_1.errorResponse)('Missing required fields', 'sessionId, tableId, subtotal and total are required'));
             }
@@ -44,6 +44,8 @@ class OrderController {
                 discount: discount ?? 0,
                 tax: tax ?? 0,
                 total: Number(total),
+                selfOrder: !!selfOrder,
+                paymentTag: paymentTag ?? null,
                 items: items ?? []
             });
             if (socket_1.io) {

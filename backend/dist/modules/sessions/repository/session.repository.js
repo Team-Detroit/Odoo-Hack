@@ -6,6 +6,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SessionRepository = void 0;
 const prisma_1 = __importDefault(require("../../../shared/prisma"));
 class SessionRepository {
+    async getActiveSessionPublic() {
+        return prisma_1.default.session.findFirst({
+            where: { status: 'OPEN' },
+        });
+    }
     async getCurrentSession(userId) {
         return prisma_1.default.session.findFirst({
             where: { userId, status: 'OPEN' },

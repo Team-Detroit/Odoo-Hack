@@ -32,6 +32,24 @@ const TicketCard: React.FC<{ ticket: KdsTicket; onAdvance: (id: string) => void 
         </div>
         <span className={`px-2 py-0.5 rounded text-xs font-medium ${stageBadge[ticket.stage]}`}>{KDS_STAGE_LABELS[ticket.stage]}</span>
       </div>
+      {(ticket.selfOrder || ticket.paymentTag) && (
+        <div className="px-3 py-1 bg-white/40 flex flex-wrap gap-1.5 border-b border-gray-100">
+          {ticket.selfOrder && (
+            <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-[9px] font-bold uppercase tracking-wider">
+              📱 Self-Ordering
+            </span>
+          )}
+          {ticket.paymentTag && (
+            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+              ticket.paymentTag.toLowerCase().includes('paid') 
+                ? 'bg-emerald-100 text-emerald-850' 
+                : 'bg-amber-100 text-amber-850'
+            }`}>
+              {ticket.paymentTag}
+            </span>
+          )}
+        </div>
+      )}
       <div className="px-3 py-2 space-y-1">
         {ticket.items.map(item => (
           <div key={item.id} onClick={() => toggleItem(item.id)}

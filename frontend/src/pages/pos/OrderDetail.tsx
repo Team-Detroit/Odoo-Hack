@@ -47,6 +47,8 @@ export const OrderDetail: React.FC = () => {
             ['Customer', order.customer?.name ?? '—'],
             ['Table', order.table ? `T${order.table.tableNumber ?? order.table.number}` : '—'],
             ['Session', order.sessionId],
+            ['Order Type', order.selfOrder ? '📱 Self-Ordering Kiosk' : '💻 POS Register'],
+            ['Payment Info', order.paymentTag ?? '—'],
           ].map(([k, v]) => (
             <div key={k} className="bg-white px-4 py-3">
               <p className="text-xs text-gray-400">{k}</p>

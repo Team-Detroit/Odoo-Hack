@@ -28,6 +28,8 @@ export interface Order {
   discount: number;
   total: number;
   status: OrderStatus;
+  selfOrder?: boolean;
+  paymentTag?: string;
   couponCode?: string;
   appliedPromotion?: string;
   notes?: string;

@@ -17,6 +17,8 @@ export interface KdsTicket {
   customerName?: string;
   items: KdsTicketItem[];
   stage: KdsStage;
+  selfOrder?: boolean;
+  paymentTag?: string;
   createdAt: string;
   updatedAt: string;
 }

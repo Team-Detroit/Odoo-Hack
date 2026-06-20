@@ -34,9 +34,11 @@ axiosInstance.interceptors.response.use(
   (error: AxiosError) => {
     // Handle 401 Unauthorized - redirect to login
     if (error.response?.status === 401) {
-      localStorage.removeItem(AUTH_TOKEN_KEY);
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      if (!window.location.pathname.toLowerCase().includes('customer-display')) {
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
     }
 
     // Handle other errors

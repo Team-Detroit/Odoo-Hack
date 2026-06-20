@@ -5,6 +5,9 @@ const client_1 = require("@prisma/client");
 const session_repository_1 = require("../repository/session.repository");
 class SessionService {
     sessionRepository = new session_repository_1.SessionRepository();
+    async getActiveSessionPublic() {
+        return this.sessionRepository.getActiveSessionPublic();
+    }
     async getCurrentSession(userId) {
         return this.sessionRepository.getCurrentSession(userId);
     }

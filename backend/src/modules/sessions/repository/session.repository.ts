@@ -2,6 +2,12 @@ import prisma from '../../../shared/prisma';
 import { OpenSessionDto } from '../dto/openSession.dto';
 
 export class SessionRepository {
+  async getActiveSessionPublic() {
+    return prisma.session.findFirst({
+      where: { status: 'OPEN' },
+    });
+  }
+
   async getCurrentSession(userId: string) {
     return prisma.session.findFirst({
       where: { userId, status: 'OPEN' },

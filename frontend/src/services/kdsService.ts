@@ -11,6 +11,8 @@ const mapKdsTicket = (t: any): KdsTicket => {
     tableNumber: order.table ? String(order.table.tableNumber ?? order.table.number ?? '') : '',
     customerName: order.customer ? order.customer.name : '',
     stage: (t.status || 'TO_COOK').toLowerCase() as KdsStage,
+    selfOrder: order.selfOrder || false,
+    paymentTag: order.paymentTag || '',
     items: (order.items || []).map((item: any) => ({
       id: item.id,
       productId: item.productId,

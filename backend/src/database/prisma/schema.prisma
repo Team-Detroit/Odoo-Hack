@@ -224,6 +224,10 @@ model Order {
 
   total Float
 
+  selfOrder Boolean @default(false)
+
+  paymentTag String?
+
   items OrderItem[]
 
   payment Payment?

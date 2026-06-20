@@ -8,4 +8,6 @@ export interface CreateOrderDto {
   discount?: number;
   tax?: number;
   total: number;
+  selfOrder?: boolean;
+  paymentTag?: string;
 }

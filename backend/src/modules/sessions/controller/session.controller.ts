@@ -8,6 +8,19 @@ type AuthRequest = Request & { user?: { id: string } };
 export class SessionController {
   private sessionService = new SessionService();
 
+  async getActiveSessionPublic(req: Request, res: Response) {
+    try {
+      const session = await this.sessionService.getActiveSessionPublic();
+      if (session) {
+        res.status(200).json(successResponse('Active session fetched', session));
+      } else {
+        res.status(200).json(successResponse('No active session found', null));
+      }
+    } catch (error: any) {
+      res.status(500).json(errorResponse('Failed to fetch active session', error.message));
+    }
+  }
+
   async getCurrentSession(req: AuthRequest, res: Response) {
     try {
       if (!req.user) {

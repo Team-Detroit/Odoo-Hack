@@ -5,6 +5,10 @@ import { OpenSessionDto } from '../dto/openSession.dto';
 export class SessionService {
   private sessionRepository = new SessionRepository();
 
+  async getActiveSessionPublic() {
+    return this.sessionRepository.getActiveSessionPublic();
+  }
+
   async getCurrentSession(userId: string) {
     return this.sessionRepository.getCurrentSession(userId);
   }

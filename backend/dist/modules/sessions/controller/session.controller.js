@@ -5,6 +5,20 @@ const session_service_1 = require("../service/session.service");
 const response_util_1 = require("../../../shared/utils/response.util");
 class SessionController {
     sessionService = new session_service_1.SessionService();
+    async getActiveSessionPublic(req, res) {
+        try {
+            const session = await this.sessionService.getActiveSessionPublic();
+            if (session) {
+                res.status(200).json((0, response_util_1.successResponse)('Active session fetched', session));
+            }
+            else {
+                res.status(200).json((0, response_util_1.successResponse)('No active session found', null));
+            }
+        }
+        catch (error) {
+            res.status(500).json((0, response_util_1.errorResponse)('Failed to fetch active session', error.message));
+        }
+    }
     async getCurrentSession(req, res) {
         try {
             if (!req.user) {

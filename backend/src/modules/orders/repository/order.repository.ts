@@ -72,9 +72,9 @@ export class OrderRepository {
       } 
     });
 
-    if (data.status === 'PAID') {
+    if (data.status === 'PAID' || data.status === 'SENT_TO_KITCHEN') {
       try {
-        if (updatedOrder.tableId) {
+        if (data.status === 'PAID' && updatedOrder.tableId) {
           await prisma.table.update({
             where: { id: updatedOrder.tableId },
             data: { status: 'AVAILABLE' }
@@ -86,7 +86,7 @@ export class OrderRepository {
           create: { orderId: id, status: 'TO_COOK' }
         });
       } catch (err) {
-        console.error("Error updating table or kitchen ticket status on payment:", err);
+        console.error("Error updating table or kitchen ticket status on order status change:", err);
       }
     }
 

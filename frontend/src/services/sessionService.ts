@@ -34,6 +34,15 @@ export const sessionService = {
     return response.data.data?.session || response.data.data || response.data;
   },
 
+  getActivePublic: async (): Promise<Session | null> => {
+    try {
+      const response = await axiosInstance.get('/sessions/active');
+      return response.data.data?.session || response.data.data || null;
+    } catch {
+      return null;
+    }
+  },
+
   mockGetActive: async (): Promise<Session | null> => {
     return sessionService.getCurrentActive();
   },

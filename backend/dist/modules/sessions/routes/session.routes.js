@@ -5,6 +5,7 @@ const session_controller_1 = require("../controller/session.controller");
 const auth_middleware_1 = require("../../auth/middleware/auth.middleware");
 const router = (0, express_1.Router)();
 const controller = new session_controller_1.SessionController();
+router.get('/sessions/active', controller.getActiveSessionPublic.bind(controller));
 router.get('/sessions/current', auth_middleware_1.authMiddleware, controller.getCurrentSession.bind(controller));
 router.post('/sessions/open', auth_middleware_1.authMiddleware, controller.openSession.bind(controller));
 router.post('/sessions/close', auth_middleware_1.authMiddleware, controller.closeSession.bind(controller));

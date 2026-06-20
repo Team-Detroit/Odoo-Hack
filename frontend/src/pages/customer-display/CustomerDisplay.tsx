@@ -99,13 +99,27 @@ export const CustomerDisplay: React.FC = () => {
         productService.getAll().catch(() => productService.mockProducts as any),
         categoryService.getAll().catch(() => categoryService.mockCategories as any),
         tableService.getAll().catch(() => []),
-        sessionService.getCurrentActive().catch(() => null)
+        sessionService.getActivePublic().catch(() => null)
       ]);
 
-      setProducts(prods || []);
-      setCategories(cats || []);
+      const activeProds = (prods || []).filter((p: any) => p.isActive);
+      const activeCats = (cats || []).filter((c: any) => c.isActive);
+
+      setProducts(activeProds);
+      setCategories(activeCats);
       setTables(tbls || []);
       setSession(activeSess);
+
+      // Automatically select table if tableId is present in URL
+      const searchParams = new URLSearchParams(window.location.search);
+      const tableId = searchParams.get('tableId');
+      if (tableId && tbls && tbls.length > 0) {
+        const found = tbls.find((t: Table) => t.id === tableId);
+        if (found) {
+          setSelectedTable(found);
+          setDiningOption('dine_in');
+        }
+      }
     } catch (e) {
       console.error('Error fetching customer display data', e);
     } finally {
@@ -161,7 +175,7 @@ export const CustomerDisplay: React.FC = () => {
       // Fetch or confirm active session
       let activeSession = session;
       if (!activeSession) {
-        activeSession = await sessionService.getCurrentActive();
+        activeSession = await sessionService.getActivePublic();
       }
       if (!activeSession) {
         // Fallback to finding any open session in database
@@ -222,6 +236,11 @@ export const CustomerDisplay: React.FC = () => {
         }
       }
 
+      const isOnlinePay = paymentOption === 'online';
+      const orderPaymentTag = isOnlinePay 
+        ? (paymentSubMethod === 'upi' ? 'UPI Paid' : 'Card Paid') 
+        : 'Pending (Counter)';
+
       // 1. Create order record
       const orderRes = await axiosInstance.post('/orders', {
         sessionId: activeSession.id,
@@ -230,7 +249,9 @@ export const CustomerDisplay: React.FC = () => {
         subtotal: orderSubtotal,
         tax: orderTax,
         total: orderTotal,
-        discount: 0
+        discount: 0,
+        selfOrder: true,
+        paymentTag: orderPaymentTag
       });
 
       const orderData = orderRes.data.data?.order || orderRes.data.data || orderRes.data;
@@ -270,12 +291,14 @@ export const CustomerDisplay: React.FC = () => {
 
         // Mark order as PAID
         await axiosInstance.put(`/orders/${orderData.id}`, {
-          status: 'PAID'
+          status: 'PAID',
+          paymentTag: orderPaymentTag
         }).catch(err => console.error('Failed to update order status', err));
       } else {
         // Cash at counter - set order to SENT_TO_KITCHEN so it shows on kitchen display/POS
         await axiosInstance.put(`/orders/${orderData.id}`, {
-          status: 'SENT_TO_KITCHEN'
+          status: 'SENT_TO_KITCHEN',
+          paymentTag: orderPaymentTag
         }).catch(err => console.error('Failed to set order to kitchen status', err));
       }
 
@@ -425,7 +448,7 @@ export const CustomerDisplay: React.FC = () => {
                       >
                         <div className="w-full h-28 bg-gray-100 overflow-hidden relative">
                           <img
-                            src={getProductImage(p.name)}
+                            src={p.imageUrl || getProductImage(p.name)}
                             alt={p.name}
                             className="w-full h-full object-cover"
                           />

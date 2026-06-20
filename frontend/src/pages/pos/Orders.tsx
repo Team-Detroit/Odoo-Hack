@@ -40,7 +40,27 @@ export const Orders: React.FC = () => {
               {filtered.map(o => (
                 <tr key={o.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3"><Link to={`/pos/orders/${o.id}`} className="font-mono font-semibold text-teal-600 hover:underline">{o.orderNumber || `#${o.id.substring(0, 8).toUpperCase()}`}</Link></td>
-                  <td className="px-4 py-3 text-gray-600">{o.customer?.name ?? '—'}</td>
+                  <td className="px-4 py-3 text-gray-600">
+                    <div className="flex flex-col gap-1">
+                      <span>{o.customer?.name ?? '—'}</span>
+                      <div className="flex flex-wrap gap-1">
+                        {o.selfOrder && (
+                          <span className="px-1.5 py-0.5 bg-purple-100 text-purple-855 rounded text-[9px] font-bold uppercase tracking-wider">
+                            📱 Self-Order
+                          </span>
+                        )}
+                        {o.paymentTag && (
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                            o.paymentTag.toLowerCase().includes('paid') 
+                              ? 'bg-emerald-100 text-emerald-850' 
+                              : 'bg-amber-100 text-amber-850'
+                          }`}>
+                            {o.paymentTag}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-gray-600">{o.table ? `T${o.table.tableNumber ?? o.table.number}` : '—'}</td>
                   <td className="px-4 py-3 font-semibold">₹{o.total.toFixed(2)}</td>
                   <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded text-xs font-medium ${ORDER_STATUS_COLORS[o.status.toLowerCase()] || 'bg-gray-100 text-gray-800'}`}>{ORDER_STATUS_LABELS[o.status.toLowerCase()] || o.status}</span></td>

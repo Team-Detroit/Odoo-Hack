@@ -5,6 +5,7 @@ import { authMiddleware } from '../../auth/middleware/auth.middleware';
 const router = Router();
 const controller = new SessionController();
 
+router.get('/sessions/active', controller.getActiveSessionPublic.bind(controller));
 router.get('/sessions/current', authMiddleware, controller.getCurrentSession.bind(controller));
 router.post('/sessions/open', authMiddleware, controller.openSession.bind(controller));
 router.post('/sessions/close', authMiddleware, controller.closeSession.bind(controller));
