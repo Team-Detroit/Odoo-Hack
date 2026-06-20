@@ -1,42 +1,75 @@
-import { create } from "zustand";
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import type { User } from '../types/auth';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: "ADMIN" | "EMPLOYEE" | "KITCHEN";
-}
+const AUTH_TOKEN_KEY = 'auth_token';
+const USER_KEY = 'user';
 
-interface AuthState {
+interface AuthStore {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
-  
-  // Actions
+  setAuth: (user: User, token: string) => void;
   setUser: (user: User) => void;
-  setToken: (token: string) => void;
-  logout: () => void;
-  isLoading: boolean;
-  setLoading: (loading: boolean) => void;
+  clearAuth: () => void;
+  loadFromStorage: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  token: localStorage.getItem("auth_token"),
-  isAuthenticated: !!localStorage.getItem("auth_token"),
-  isLoading: false,
+export const useAuthStore = create<AuthStore>()(
+  persist(
+    (set) => ({
+      user: null,
+      token: null,
+      isAuthenticated: false,
 
-  setUser: (user: User) => set({ user, isAuthenticated: true }),
-  
-  setToken: (token: string) => {
-    localStorage.setItem("auth_token", token);
-    set({ token, isAuthenticated: true });
-  },
-  
-  logout: () => {
-    localStorage.removeItem("auth_token");
-    set({ user: null, token: null, isAuthenticated: false });
-  },
+      setAuth: (user, token) => {
+        set({
+          user,
+          token,
+          isAuthenticated: true,
+        });
+        localStorage.setItem(AUTH_TOKEN_KEY, token);
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
+      },
 
-  setLoading: (loading: boolean) => set({ isLoading: loading }),
-}));
+      setUser: (user) => {
+        set((state) => ({
+          ...state,
+          user,
+        }));
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
+      },
+
+      clearAuth: () => {
+        set({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+        });
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+      },
+
+      loadFromStorage: () => {
+        const token = localStorage.getItem(AUTH_TOKEN_KEY);
+        const userStr = localStorage.getItem(USER_KEY);
+
+        if (token && userStr) {
+          try {
+            const user = JSON.parse(userStr);
+            set({
+              user,
+              token,
+              isAuthenticated: true,
+            });
+          } catch (error) {
+            console.error('Failed to load auth from storage', error);
+          }
+        }
+      },
+    }),
+    {
+      name: 'auth-storage',
+    }
+  )
+);
