@@ -1,0 +1,51 @@
+import axios from 'axios';
+import type { AxiosInstance, AxiosError, AxiosResponse } from 'axios';
+import { AUTH_TOKEN_KEY } from '../constants/routes';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+const axiosInstance: AxiosInstance = axios.create({
+  baseURL: API_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add auth token
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor to handle errors
+axiosInstance.interceptors.response.use(
+  (response: AxiosResponse) => {
+    return response;
+  },
+  (error: AxiosError) => {
+    // Handle 401 Unauthorized - redirect to login
+    if (error.response?.status === 401) {
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+
+    // Handle other errors
+    if (error.response?.status === 403) {
+      console.error('Access forbidden');
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+export default axiosInstance;
