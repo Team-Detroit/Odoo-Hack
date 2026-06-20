@@ -19,7 +19,10 @@ export class AuthController {
         return res.status(400).json(errorResponse('Missing required fields', 'name, email, password and role are required'));
       }
 
-      const user = await this.authService.signup(data);
+      const user = await this.authService.signup({
+        ...data,
+        role: data.role.toUpperCase() as any
+      });
       res.status(201).json(successResponse('User created successfully', { user }));
     } catch (error: any) {
       res.status(400).json(errorResponse(error.message, error.message));

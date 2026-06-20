@@ -12,7 +12,7 @@ export const useAuth = () => {
   });
 
   const signupMutation = useMutation({
-    mutationFn: (d: { name: string; email: string; password: string }) => authService.mockSignup(d.name, d.email),
+    mutationFn: (d: { name: string; email: string; password: string }) => authService.signup({ name: d.name, email: d.email, password: d.password, role: 'employee' }),
     onSuccess: (data) => { setAuth(data.user, data.token); qc.setQueryData(['currentUser'], data.user); },
   });
 
