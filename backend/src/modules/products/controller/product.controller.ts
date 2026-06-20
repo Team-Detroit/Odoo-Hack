@@ -50,12 +50,12 @@ export class ProductController {
         isKitchenItem,
       } = req.body as CreateProductDto;
 
-      if (!name || price == null || !categoryId || available == null || isKitchenItem == null) {
-        return res.status(400).json(errorResponse('Missing required fields', 'Name, price, categoryId, available, and isKitchenItem are required'));
+      if (!name || price == null || !categoryId) {
+        return res.status(400).json(errorResponse('Missing required fields', 'Name, price, and categoryId are required'));
       }
 
-      if (typeof price !== 'number' || typeof available !== 'boolean' || typeof isKitchenItem !== 'boolean') {
-        return res.status(400).json(errorResponse('Invalid product payload', 'price must be a number, available and isKitchenItem must be boolean'));
+      if (typeof price !== 'number') {
+        return res.status(400).json(errorResponse('Invalid product payload', 'price must be a number'));
       }
 
       const createProductDto: CreateProductDto = {
@@ -64,9 +64,9 @@ export class ProductController {
         categoryId,
         description,
         image,
-        tax,
-        available,
-        isKitchenItem,
+        tax: tax ?? 0,
+        available: available !== undefined ? available : true,
+        isKitchenItem: isKitchenItem !== undefined ? isKitchenItem : true,
       };
 
       const newProduct = await this.productService.createProduct(createProductDto);

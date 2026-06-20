@@ -8,8 +8,10 @@ export const paymentMethodService = {
   },
 
   update: async (data: UpdatePaymentMethodRequest): Promise<PaymentMethod> => {
-    const response = await axiosInstance.put(`/payment-methods/${data.type}`, data);
-    return response.data;
+    const current = await paymentMethodService.mockGetAll();
+    const updated = current.map(m => m.type === data.type ? { ...m, ...data } : m);
+    localStorage.setItem('payment_methods', JSON.stringify(updated));
+    return updated.find(m => m.type === data.type);
   },
 
   mockMethods: [
@@ -19,8 +21,10 @@ export const paymentMethodService = {
   ],
 
   mockGetAll: async (): Promise<PaymentMethod[]> => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(paymentMethodService.mockMethods), 300);
-    });
+    const saved = localStorage.getItem('payment_methods');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    return paymentMethodService.mockMethods;
   },
 };

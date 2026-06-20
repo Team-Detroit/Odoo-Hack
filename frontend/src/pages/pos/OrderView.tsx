@@ -56,7 +56,7 @@ const CategoryTabs: React.FC<{ selected: string; onSelect: (id: string) => void 
       >
         All Products
       </button>
-      {cats.map(c => (
+      {Array.isArray(cats) && cats.map(c => (
         <button 
           key={c.id} 
           onClick={() => onSelect(c.id)}
@@ -225,7 +225,7 @@ export const OrderView: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {filtered.map(p => <ProductCard key={p.id} product={p} onAdd={addItem} />)}
+              {Array.isArray(filtered) && filtered.map(p => <ProductCard key={p.id} product={p} onAdd={addItem} />)}
             </div>
           )}
         </div>

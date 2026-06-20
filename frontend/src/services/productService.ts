@@ -4,27 +4,27 @@ import { Product, CreateProductRequest, UpdateProductRequest } from '../types/pr
 export const productService = {
   getAll: async (): Promise<Product[]> => {
     const response = await axiosInstance.get('/products');
-    return response.data;
+    return response.data.data?.products || response.data.data || [];
   },
 
   getById: async (id: string): Promise<Product> => {
     const response = await axiosInstance.get(`/products/${id}`);
-    return response.data;
+    return response.data.data?.products || response.data.data || [];
   },
 
   getByCategory: async (categoryId: string): Promise<Product[]> => {
     const response = await axiosInstance.get(`/products?categoryId=${categoryId}`);
-    return response.data;
+    return response.data.data?.products || response.data.data || [];
   },
 
   create: async (data: CreateProductRequest): Promise<Product> => {
     const response = await axiosInstance.post('/products', data);
-    return response.data;
+    return response.data.data?.products || response.data.data || [];
   },
 
   update: async (id: string, data: Partial<CreateProductRequest>): Promise<Product> => {
     const response = await axiosInstance.put(`/products/${id}`, data);
-    return response.data;
+    return response.data.data?.products || response.data.data || [];
   },
 
   delete: async (id: string): Promise<void> => {
@@ -33,7 +33,7 @@ export const productService = {
 
   search: async (query: string): Promise<Product[]> => {
     const response = await axiosInstance.get(`/products/search?q=${query}`);
-    return response.data;
+    return response.data.data?.products || response.data.data || [];
   },
 
   mockProducts: [
@@ -68,8 +68,6 @@ export const productService = {
   ],
 
   mockGetAll: async (): Promise<Product[]> => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(productService.mockProducts), 300);
-    });
+    return productService.getAll();
   },
 };

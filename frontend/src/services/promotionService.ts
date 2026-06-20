@@ -4,22 +4,22 @@ import { Promotion, CreatePromotionRequest, UpdatePromotionRequest } from '../ty
 export const promotionService = {
   getAll: async (): Promise<Promotion[]> => {
     const response = await axiosInstance.get('/promotions');
-    return response.data;
+    return response.data.data?.promotions || response.data.data || [];
   },
 
   getById: async (id: string): Promise<Promotion> => {
     const response = await axiosInstance.get(`/promotions/${id}`);
-    return response.data;
+    return response.data.data?.promotions || response.data.data || [];
   },
 
   create: async (data: CreatePromotionRequest): Promise<Promotion> => {
     const response = await axiosInstance.post('/promotions', data);
-    return response.data;
+    return response.data.data?.promotions || response.data.data || [];
   },
 
   update: async (id: string, data: Partial<CreatePromotionRequest>): Promise<Promotion> => {
     const response = await axiosInstance.put(`/promotions/${id}`, data);
-    return response.data;
+    return response.data.data?.promotions || response.data.data || [];
   },
 
   delete: async (id: string): Promise<void> => {
@@ -53,8 +53,6 @@ export const promotionService = {
   ],
 
   mockGetAll: async (): Promise<Promotion[]> => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(promotionService.mockPromotions), 300);
-    });
-  },
+          return promotionService.getAll();
+        },
 };

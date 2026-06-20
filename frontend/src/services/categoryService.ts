@@ -4,22 +4,22 @@ import { Category, CreateCategoryRequest, UpdateCategoryRequest } from '../types
 export const categoryService = {
   getAll: async (): Promise<Category[]> => {
     const response = await axiosInstance.get('/categories');
-    return response.data;
+    return response.data.data?.categories || response.data.data || [];
   },
 
   getById: async (id: string): Promise<Category> => {
     const response = await axiosInstance.get(`/categories/${id}`);
-    return response.data;
+    return response.data.data?.categories || response.data.data || [];
   },
 
   create: async (data: CreateCategoryRequest): Promise<Category> => {
     const response = await axiosInstance.post('/categories', data);
-    return response.data;
+    return response.data.data?.categories || response.data.data || [];
   },
 
   update: async (id: string, data: Partial<CreateCategoryRequest>): Promise<Category> => {
     const response = await axiosInstance.put(`/categories/${id}`, data);
-    return response.data;
+    return response.data.data?.categories || response.data.data || [];
   },
 
   delete: async (id: string): Promise<void> => {
@@ -34,8 +34,6 @@ export const categoryService = {
   ],
 
   mockGetAll: async (): Promise<Category[]> => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(categoryService.mockCategories), 300);
-    });
+    return categoryService.getAll();
   },
 };

@@ -1,15 +1,30 @@
 import axiosInstance from '../lib/axios';
 import { LoginRequest, SignupRequest, AuthResponse, User } from '../types/auth';
 
+const normalizeUser = (user: any) => {
+  if (user && typeof user.role === 'string') {
+    return { ...user, role: user.role.toLowerCase() };
+  }
+  return user;
+};
+
 export const authService = {
   login: async (data: LoginRequest): Promise<AuthResponse> => {
     const response = await axiosInstance.post('/auth/login', data);
-    return response.data;
+    const resData = response.data.data || response.data;
+    if (resData && resData.user) {
+      resData.user = normalizeUser(resData.user);
+    }
+    return resData;
   },
 
   signup: async (data: SignupRequest): Promise<AuthResponse> => {
     const response = await axiosInstance.post('/auth/signup', data);
-    return response.data;
+    const resData = response.data.data || response.data;
+    if (resData && resData.user) {
+      resData.user = normalizeUser(resData.user);
+    }
+    return resData;
   },
 
   logout: async (): Promise<void> => {
@@ -18,50 +33,25 @@ export const authService = {
 
   getCurrentUser: async (): Promise<User> => {
     const response = await axiosInstance.get('/auth/me');
-    return response.data;
+    const user = response.data.data?.user || response.data.data || response.data;
+    return normalizeUser(user);
   },
 
   refreshToken: async (): Promise<AuthResponse> => {
     const response = await axiosInstance.post('/auth/refresh');
-    return response.data;
+    const resData = response.data.data || response.data;
+    if (resData && resData.user) {
+      resData.user = normalizeUser(resData.user);
+    }
+    return resData;
   },
 
   // Mock methods for when backend isn't ready
   mockLogin: async (email: string, password: string): Promise<AuthResponse> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          user: {
-            id: '1',
-            name: 'John Doe',
-            email,
-            role: email.includes('admin') ? 'admin' : 'employee',
-            isActive: true,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          token: 'mock_token_' + Date.now(),
-        });
-      }, 500);
-    });
+    return authService.login({ email, password });
   },
 
   mockSignup: async (name: string, email: string): Promise<AuthResponse> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          user: {
-            id: Date.now().toString(),
-            name,
-            email,
-            role: 'employee',
-            isActive: true,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          token: 'mock_token_' + Date.now(),
-        });
-      }, 500);
-    });
+    return authService.signup({ name, email, password: 'password123' });
   },
 };

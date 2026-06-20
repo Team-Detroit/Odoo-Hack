@@ -52,7 +52,7 @@ export const CustomerDisplay: React.FC = () => {
               <th className="px-4 py-3 text-right text-xs text-gray-500">Price</th>
             </tr></thead>
             <tbody className="divide-y divide-gray-100">
-              {orderData.items.map((item, i) => (
+              {Array.isArray(orderData.items) && orderData.items.map((item, i) => (
                 <tr key={i}>
                   <td className="px-4 py-3 font-medium">{item.name}</td>
                   <td className="px-4 py-3 text-center">{item.qty}</td>

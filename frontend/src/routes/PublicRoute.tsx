@@ -7,7 +7,7 @@ interface PublicRouteProps {
 }
 
 export const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuthContext();
+  const { isAuthenticated, user, isLoading } = useAuthContext();
 
   if (isLoading) {
     return (
@@ -17,7 +17,7 @@ export const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
     );
   }
 
-  if (isAuthenticated) {
+  if (isAuthenticated && user) {
     return <Navigate to="/pos" replace />;
   }
 

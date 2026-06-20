@@ -20,11 +20,11 @@ export const TableView: React.FC = () => {
     <div className="p-6">
       <h2 className="text-lg font-semibold text-gray-800 mb-5">Table View</h2>
       <div className="space-y-6">
-        {floors.map(floor => (
+        {Array.isArray(floors) && floors.map(floor => (
           <div key={floor.id}>
             <h3 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">{floor.name}</h3>
             <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-3">
-              {floor.tables.map(t => (
+              {Array.isArray(floor.tables) && floor.tables.map(t => (
                 <button key={t.id} onClick={() => selectTable(t)}
                   className={`aspect-square rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-all hover:shadow-md ${t.hasActiveOrder ? 'border-orange-400 bg-orange-50 hover:bg-orange-100' : 'border-gray-200 bg-white hover:border-teal-400 hover:bg-teal-50'}`}>
                   <span className="text-lg">🪑</span>

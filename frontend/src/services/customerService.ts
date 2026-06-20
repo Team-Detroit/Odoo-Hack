@@ -4,27 +4,27 @@ import { Customer, CreateCustomerRequest, UpdateCustomerRequest } from '../types
 export const customerService = {
   getAll: async (): Promise<Customer[]> => {
     const response = await axiosInstance.get('/customers');
-    return response.data;
+    return response.data.data?.customers || response.data.data || [];
   },
 
   getById: async (id: string): Promise<Customer> => {
     const response = await axiosInstance.get(`/customers/${id}`);
-    return response.data;
+    return response.data.data?.customers || response.data.data || [];
   },
 
   search: async (query: string): Promise<Customer[]> => {
     const response = await axiosInstance.get(`/customers/search?q=${query}`);
-    return response.data;
+    return response.data.data?.customers || response.data.data || [];
   },
 
   create: async (data: CreateCustomerRequest): Promise<Customer> => {
     const response = await axiosInstance.post('/customers', data);
-    return response.data;
+    return response.data.data?.customers || response.data.data || [];
   },
 
   update: async (id: string, data: Partial<CreateCustomerRequest>): Promise<Customer> => {
     const response = await axiosInstance.put(`/customers/${id}`, data);
-    return response.data;
+    return response.data.data?.customers || response.data.data || [];
   },
 
   delete: async (id: string): Promise<void> => {
@@ -36,8 +36,6 @@ export const customerService = {
   ],
 
   mockGetAll: async (): Promise<Customer[]> => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(customerService.mockCustomers), 300);
-    });
+    return customerService.getAll();
   },
 };

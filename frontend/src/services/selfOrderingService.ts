@@ -29,22 +29,22 @@ export const selfOrderingService = {
   },
 
   mockGetConfig: async (): Promise<SelfOrderingConfig> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          isEnabled: true,
-          mode: 'online',
-          backgroundColor: '#f5f5f5',
-          backgroundImages: [],
-          tableQRCodes: [
-            {
-              tableToken: 'table_token_1',
-              tableNumber: 1,
-              url: 'http://localhost:5173/s/table_token_1',
-            },
-          ],
-        });
-      }, 300);
-    });
+    try {
+      return await selfOrderingService.getConfig();
+    } catch {
+      return {
+        isEnabled: true,
+        mode: 'online',
+        backgroundColor: '#f5f5f5',
+        backgroundImages: [],
+        tableQRCodes: [
+          {
+            tableToken: 'table_token_1',
+            tableNumber: 1,
+            url: 'http://localhost:5173/s/table_token_1',
+          },
+        ],
+      };
+    }
   },
 };

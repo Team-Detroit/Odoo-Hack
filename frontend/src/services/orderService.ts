@@ -1,30 +1,31 @@
+import { useSessionStore } from '../store/sessionStore';
 import axiosInstance from '../lib/axios';
 import { Order, CreateOrderRequest, UpdateOrderRequest, OrderStatus } from '../types/order';
 
 export const orderService = {
   getAll: async (): Promise<Order[]> => {
     const response = await axiosInstance.get('/orders');
-    return response.data;
+    return response.data.data?.orders || response.data.data || [];
   },
 
   getById: async (id: string): Promise<Order> => {
     const response = await axiosInstance.get(`/orders/${id}`);
-    return response.data;
+    return response.data.data?.order || response.data.data || response.data;
   },
 
   getBySession: async (sessionId: string): Promise<Order[]> => {
     const response = await axiosInstance.get(`/orders?sessionId=${sessionId}`);
-    return response.data;
+    return response.data.data?.orders || response.data.data || [];
   },
 
   create: async (data: CreateOrderRequest): Promise<Order> => {
     const response = await axiosInstance.post('/orders', data);
-    return response.data;
+    return response.data.data?.order || response.data.data || response.data;
   },
 
   update: async (id: string, data: Partial<CreateOrderRequest>): Promise<Order> => {
     const response = await axiosInstance.put(`/orders/${id}`, data);
-    return response.data;
+    return response.data.data?.order || response.data.data || response.data;
   },
 
   delete: async (id: string): Promise<void> => {
@@ -33,33 +34,19 @@ export const orderService = {
 
   updateStatus: async (id: string, status: OrderStatus): Promise<Order> => {
     const response = await axiosInstance.patch(`/orders/${id}/status`, { status });
-    return response.data;
+    return response.data.data?.order || response.data.data || response.data;
   },
 
   sendToKitchen: async (id: string): Promise<Order> => {
-    const response = await axiosInstance.post(`/orders/${id}/send-to-kitchen`);
-    return response.data;
+    const response = await axiosInstance.patch(`/orders/${id}/send-to-kitchen`);
+    return response.data.data?.order || response.data.data || response.data;
   },
 
   mockGetBySession: async (): Promise<Order[]> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([
-          {
-            id: '1',
-            orderNumber: 'ORD-001',
-            sessionId: 'sess1',
-            items: [],
-            subtotal: 200,
-            tax: 20,
-            discount: 0,
-            total: 220,
-            status: 'draft',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-        ]);
-      }, 300);
-    });
+    const session = useSessionStore.getState().session;
+    if (session) {
+      return orderService.getBySession(session.id);
+    }
+    return orderService.getAll();
   },
 };

@@ -35,30 +35,49 @@ export const reportService = {
   },
 
   mockGetReport: async (): Promise<Report> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          metrics: {
-            totalOrders: 12,
-            totalRevenue: 5400,
-            averageOrderValue: 450,
-            totalCustomers: 8,
-          },
-          salesTrends: [
-            { date: '2024-01-01', amount: 500, orderCount: 2 },
-            { date: '2024-01-02', amount: 800, orderCount: 3 },
-          ],
-          topCategories: [
-            { categoryId: '1', categoryName: 'Beverages', totalSales: 1200, quantity: 15 },
-          ],
-          topProducts: [
-            { productId: '1', productName: 'Coffee', quantity: 10, totalSales: 1000 },
-          ],
-          topOrders: [
-            { orderId: '1', orderNumber: 'ORD-001', total: 500, itemCount: 3, date: '2024-01-01' },
-          ],
-        });
-      }, 300);
-    });
+    const dashboardRes = await axiosInstance.get('/reports/dashboard');
+    const salesRes = await axiosInstance.get('/reports/sales');
+    const topProductsRes = await axiosInstance.get('/reports/top-products');
+    const topCategoriesRes = await axiosInstance.get('/reports/top-categories');
+    
+    const dashboardMetrics = dashboardRes.data.data?.metrics || {};
+    const salesList = salesRes.data.data?.sales || [];
+    const topProdList = topProductsRes.data.data?.topProducts || [];
+    const topCatList = topCategoriesRes.data.data?.topCategories || [];
+
+    return {
+      metrics: {
+        totalOrders: dashboardMetrics.totalOrders || 0,
+        totalRevenue: dashboardMetrics.totalRevenue || 0,
+        averageOrderValue: dashboardMetrics.totalOrders > 0 
+          ? dashboardMetrics.totalRevenue / dashboardMetrics.totalOrders 
+          : 0,
+        totalCustomers: dashboardMetrics.totalCustomers || 0,
+      },
+      salesTrends: salesList.map((o) => ({
+        date: new Date(o.createdAt).toLocaleDateString(),
+        amount: o.total,
+        orderCount: 1
+      })),
+      topCategories: topCatList.map((c) => ({
+        categoryId: c.id,
+        categoryName: c.name,
+        totalSales: 0,
+        quantity: 0
+      })),
+      topProducts: topProdList.map((p) => ({
+        productId: p.product.id,
+        productName: p.product.name,
+        quantity: p.totalQuantity,
+        totalSales: p.totalQuantity * p.product.price
+      })),
+      topOrders: salesList.slice(0, 5).map((o) => ({
+        orderId: o.id,
+        orderNumber: o.id.slice(0, 8),
+        total: o.total,
+        itemCount: o.items ? o.items.length : 0,
+        date: new Date(o.createdAt).toLocaleDateString()
+      }))
+    };
   },
 };

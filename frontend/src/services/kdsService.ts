@@ -7,30 +7,30 @@ export const kdsService = {
     if (filter?.stage) params.append('stage', filter.stage);
     if (filter?.searchTerm) params.append('search', filter.searchTerm);
     
-    const response = await axiosInstance.get(`/kds/tickets?${params.toString()}`);
-    return response.data;
+    const response = await axiosInstance.get(`/kitchen-tickets?${params.toString()}`);
+    return response.data.data?.tickets || response.data.data || [];
   },
 
   getTicketById: async (id: string): Promise<KdsTicket> => {
-    const response = await axiosInstance.get(`/kds/tickets/${id}`);
-    return response.data;
+    const response = await axiosInstance.get(`/kitchen-tickets/${id}`);
+    return response.data.data?.tickets || response.data.data || [];
   },
 
   updateTicketStage: async (id: string, stage: string): Promise<KdsTicket> => {
-    const response = await axiosInstance.patch(`/kds/tickets/${id}/stage`, { stage });
-    return response.data;
+    const response = await axiosInstance.patch(`/kitchen-tickets/${id}/status`, { stage });
+    return response.data.data?.tickets || response.data.data || [];
   },
 
   updateItemStatus: async (ticketId: string, itemId: string, status: string): Promise<KdsTicket> => {
     const response = await axiosInstance.patch(
-      `/kds/tickets/${ticketId}/items/${itemId}/status`,
+      `/kitchen-tickets/${ticketId}/items/${itemId}/status`,
       { status }
     );
-    return response.data;
+    return response.data.data?.tickets || response.data.data || [];
   },
 
   mockGetAll: async (): Promise<KdsTicket[]> => {
-    return kdsService.mockGetTickets();
+    return kdsService.getTickets();
   },
 
   updateStage: async (id: string, stage: string): Promise<KdsTicket> => {
@@ -38,30 +38,6 @@ export const kdsService = {
   },
 
   mockGetTickets: async (): Promise<KdsTicket[]> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([
-          {
-            id: 'ticket1',
-            ticketNumber: 'T001',
-            orderNumber: 'ORD-001',
-            tableNumber: 1,
-            customerName: 'Walk-in',
-            items: [
-              {
-                id: 'item1',
-                productId: 'prod1',
-                productName: 'Biryani',
-                quantity: 2,
-                status: 'to_cook',
-              },
-            ],
-            stage: 'to_cook',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-        ]);
-      }, 300);
-    });
+    return kdsService.getTickets();
   },
 };
