@@ -4,7 +4,7 @@ import { SocketProvider } from '../context/SocketContext';
 
 export const CustomerDisplayLayout: React.FC = () => (
   <SocketProvider>
-    <div className="h-screen overflow-hidden">
+    <div className="h-screen overflow-hidden font-sans">
       <Outlet />
     </div>
   </SocketProvider>

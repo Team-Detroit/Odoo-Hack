@@ -320,7 +320,7 @@ export const CustomerDisplay: React.FC = () => {
   // Render Loader
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center" style={{ fontFamily: "'Montserrat', sans-serif" }}>
         <div className="w-12 h-12 border-4 border-odoo-teal border-t-transparent rounded-full animate-spin"></div>
         <p className="mt-4 text-gray-500 font-semibold">Loading menu items from DB...</p>
       </div>
@@ -330,8 +330,8 @@ export const CustomerDisplay: React.FC = () => {
   // Render Menu View
   if (step === 'menu') {
     return (
-      <div className="h-screen flex flex-col bg-gray-50 overflow-hidden font-sans">
-        {/* Header */}
+      <div className="h-screen flex flex-col bg-gray-50 overflow-hidden font-sans" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+        {/* Main Brand Header */}
         <header className="bg-odoo-purple text-white px-6 py-4 flex items-center justify-between shrink-0 shadow-md">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 shrink-0">
@@ -341,28 +341,67 @@ export const CustomerDisplay: React.FC = () => {
             <div className="h-6 w-px bg-white/20 hidden sm:block"></div>
             <span className="text-xs text-purple-200 uppercase tracking-widest font-semibold hidden sm:inline">Self-Order Kiosk</span>
           </div>
+
           <div className="flex items-center gap-4">
-            <div className="relative max-w-xs hidden sm:block">
+            {/* Search (Desktop Only) */}
+            <div className="relative max-w-xs hidden sm:block flex-1 max-w-[180px]">
               <input
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search products..."
-                className="w-56 px-4 py-1.5 text-sm bg-white/10 rounded-full text-white placeholder-purple-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-odoo-teal focus:bg-white focus:text-gray-900 focus:placeholder-gray-400 transition-all"
+                placeholder="Search..."
+                className="w-full px-4 py-1.5 text-xs bg-white/10 border border-white/20 rounded-full text-white placeholder-purple-200 focus:outline-none focus:ring-2 focus:ring-odoo-teal focus:bg-white focus:text-gray-900 focus:placeholder-gray-400 transition-all"
               />
               {search && (
-                <button onClick={() => setSearch('')} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
-                  <X className="w-4 h-4" />
+                <button onClick={() => setSearch('')} className="absolute right-3 top-2 text-gray-400 hover:text-gray-600">
+                  <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
-            {!session && (
-              <span className="flex items-center gap-1 text-xs bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 px-3 py-1 rounded-full font-semibold">
-                <AlertCircle className="w-3.5 h-3.5" /> No active session
+
+            {/* Session Indicator */}
+            {!session ? (
+              <span className="flex items-center gap-1 text-[10px] bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 px-3 py-1 rounded-full font-semibold">
+                <AlertCircle className="w-3 h-3" /> POS Closed
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-[10px] bg-green-500/20 text-green-300 border border-green-500/30 px-3 py-1 rounded-full font-semibold">
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> Open
               </span>
             )}
           </div>
         </header>
+
+        {/* Categories Navbar */}
+        <nav className="bg-white border-b border-gray-200 px-6 py-2.5 flex items-center shrink-0 shadow-xs">
+          <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none w-full">
+            <button
+              onClick={() => setCatFilter('')}
+              className={`px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                !catFilter
+                  ? 'text-white'
+                  : 'text-gray-605 hover:bg-gray-100 hover:text-odoo-purple'
+              }`}
+              style={!catFilter ? { backgroundColor: '#875A7B' } : {}}
+            >
+              All Products
+            </button>
+            {categories.map(c => (
+              <button
+                key={c.id}
+                onClick={() => setCatFilter(c.id)}
+                className={`px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                  catFilter === c.id
+                    ? 'text-white'
+                    : 'text-gray-655 hover:bg-gray-100 hover:text-odoo-purple'
+                }`}
+                style={catFilter === c.id ? { backgroundColor: '#875A7B' } : {}}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+        </nav>
 
         {/* Content area */}
         <div className="flex-1 flex overflow-hidden">
@@ -377,34 +416,6 @@ export const CustomerDisplay: React.FC = () => {
                 placeholder="Search products..."
                 className="w-full px-4 py-2 text-sm bg-white rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-odoo-teal"
               />
-            </div>
-
-            {/* Category tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-2 shrink-0 scrollbar-none">
-              <button
-                onClick={() => setCatFilter('')}
-                className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-250 cursor-pointer shadow-sm border ${
-                  !catFilter
-                    ? 'bg-odoo-teal text-white border-odoo-teal'
-                    : 'bg-white text-gray-700 border-gray-200 hover:border-odoo-teal hover:text-odoo-teal'
-                }`}
-              >
-                All Products
-              </button>
-              {categories.map(c => (
-                <button
-                  key={c.id}
-                  onClick={() => setCatFilter(c.id)}
-                  className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-250 cursor-pointer shadow-sm border ${
-                    catFilter === c.id
-                      ? 'text-white border-transparent'
-                      : 'bg-white text-gray-700 border-gray-200 hover:border-odoo-teal hover:text-odoo-teal'
-                  }`}
-                  style={catFilter === c.id ? { backgroundColor: c.color || '#00A09D' } : {}}
-                >
-                  {c.name}
-                </button>
-              ))}
             </div>
 
             {/* Products Grid */}
@@ -667,7 +678,7 @@ export const CustomerDisplay: React.FC = () => {
 
   // Render Multi-step Checkout screens
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 sm:p-6 font-sans">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 sm:p-6 font-sans" style={{ fontFamily: "'Montserrat', sans-serif" }}>
       <div className="bg-white border border-gray-200 shadow-2xl rounded-3xl w-full max-w-2xl overflow-hidden flex flex-col justify-between min-h-[500px]">
         {/* Checkout Header */}
         <header className="bg-odoo-purple text-white px-6 py-4 flex items-center justify-between shadow-sm">
