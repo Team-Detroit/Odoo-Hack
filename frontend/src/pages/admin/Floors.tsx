@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../constants/routes';
+import { useTableStore } from '../../store/tableStore';
 import { floorService } from '../../services/floorService';
 import { tableService } from '../../services/tableService';
 import { Floor } from '../../types/floor';
@@ -176,6 +179,8 @@ const TableChairs: React.FC<{ seats: number; shape: 'square' | 'rectangle' | 'ro
 
 export const Floors: React.FC = () => {
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const { setSelectedTable } = useTableStore();
   const { data: serverFloors = [], isLoading } = useQuery({ queryKey: ['floors'], queryFn: floorService.mockGetAll });
 
   const [activeFloorId, setActiveFloorId] = useState<string | null>(null);
@@ -680,8 +685,8 @@ export const Floors: React.FC = () => {
                         size="sm"
                         className="w-full text-[11px] font-bold bg-teal-600 hover:bg-teal-700"
                         onClick={() => {
-                          // Quick Order / POS simulation or navigation
-                          alert(`Opening Order POS for Table ${table.tableNumber}`);
+                          setSelectedTable(table);
+                          navigate(ROUTES.POS);
                         }}
                       >
                         New Order
