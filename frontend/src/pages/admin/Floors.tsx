@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../constants/routes';
-import { useTableStore } from '../../store/tableStore';
+import { useTableStore, getActiveTableId } from '../../store/tableStore';
 import { useCartStore } from '../../store/cartStore';
 import { floorService } from '../../services/floorService';
 import { tableService } from '../../services/tableService';
@@ -240,7 +240,9 @@ const TableChairs: React.FC<{ seats: number; shape: 'square' | 'rectangle' | 'ro
 export const Floors: React.FC = () => {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const { setSelectedTable } = useTableStore();
+  const { setSelectedTable, selectedTable: cartSelectedTable } = useTableStore();
+  // Read synchronously from localStorage on first render — no async hydration wait
+  const [sessionTableId] = useState<string | null>(() => getActiveTableId());
   const { data: serverFloors = [], isLoading } = useQuery({ queryKey: ['floors'], queryFn: floorService.mockGetAll });
 
   const [activeFloorId, setActiveFloorId] = useState<string | null>(null);
@@ -351,7 +353,7 @@ export const Floors: React.FC = () => {
 
   const handleTableClick = async (table: Table) => {
     if (table.isOutOfService) return;
-    const isOccupied = table.status === 'OCCUPIED' || table.hasActiveOrder;
+    const isOccupied = table.status === 'OCCUPIED' || table.hasActiveOrder || (cartSelectedTable?.id === table.id);
 
     if (isOccupied) {
       const confirmFree = window.confirm(`Table T${table.tableNumber} is currently occupied. Would you like to free it up and make it available?`);
@@ -361,6 +363,11 @@ export const Floors: React.FC = () => {
           
           const updatedTable = { ...table, status: 'AVAILABLE' as const, hasActiveOrder: false };
           saveTableLocal(updatedTable);
+
+          // Clear active cart table if this one was being used
+          if (cartSelectedTable?.id === table.id) {
+            setSelectedTable(null);
+          }
           
           qc.invalidateQueries({ queryKey: ['floors'] });
           alert(`Table T${table.tableNumber} is now freed and available!`);
@@ -677,7 +684,8 @@ export const Floors: React.FC = () => {
             {currentTables.map(t => {
               const isSelected = selectedTableId === t.id;
               const isOos = t.isOutOfService;
-              const isOccupied = t.status === 'OCCUPIED' || t.hasActiveOrder;
+              const isOccupied = t.status === 'OCCUPIED' || t.hasActiveOrder ||
+                (cartSelectedTable?.id === t.id) || (sessionTableId === t.id);
 
               // Compute background color based on status
               let bgClass = 'bg-emerald-500 border-emerald-600 hover:bg-emerald-400';

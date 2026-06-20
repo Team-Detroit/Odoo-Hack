@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { floorService } from '../../services/floorService';
 import { tableService } from '../../services/tableService';
 import { customerService } from '../../services/customerService';
-import { useTableStore } from '../../store/tableStore';
+import { useTableStore, getActiveTableId } from '../../store/tableStore';
 import { useCartStore } from '../../store/cartStore';
 import { CustomerAssignmentModal } from '../../components/pos/CustomerAssignmentModal';
 import { Table } from '../../types/table';
@@ -15,7 +15,9 @@ import { Armchair } from 'lucide-react';
 export const TableView: React.FC = () => {
   const qc = useQueryClient();
   const { data: floors = [], isLoading } = useQuery({ queryKey: ['floors'], queryFn: floorService.mockGetAll });
-  const { setSelectedTable } = useTableStore();
+  const { selectedTable, setSelectedTable } = useTableStore();
+  // Read synchronously from localStorage on first render — no async hydration wait
+  const [sessionTableId] = useState<string | null>(() => getActiveTableId());
   const navigate = useNavigate();
   const [customerModal, setCustomerModal] = useState<{ open: boolean; table?: Table }>({ open: false });
 
@@ -32,7 +34,8 @@ export const TableView: React.FC = () => {
             <h3 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">{floor.name}</h3>
             <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-3">
               {Array.isArray(floor.tables) && floor.tables.map(t => {
-                const isOccupied = t.status === 'OCCUPIED' || t.hasActiveOrder;
+                const isOccupied = t.status === 'OCCUPIED' || t.hasActiveOrder ||
+                  (selectedTable?.id === t.id) || (sessionTableId === t.id);
                 return (
                   <button 
                     key={t.id} 
@@ -42,6 +45,9 @@ export const TableView: React.FC = () => {
                         if (confirmFree) {
                           try {
                             await tableService.updateStatus(t.id, 'AVAILABLE');
+                            if (selectedTable?.id === t.id) {
+                              setSelectedTable(null);
+                            }
                             qc.invalidateQueries({ queryKey: ['floors'] });
                             alert(`Table T${t.tableNumber} is now available!`);
                           } catch (err: any) {

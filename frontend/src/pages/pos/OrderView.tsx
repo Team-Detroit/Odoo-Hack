@@ -27,7 +27,8 @@ import {
   Percent, 
   Send, 
   Check, 
-  QrCode 
+  QrCode,
+  UtensilsCrossed
 } from 'lucide-react';
 
 // Food images mapping based on product name/category
@@ -230,7 +231,9 @@ export const OrderView: React.FC = () => {
 
   const handleSubmitOrder = async (isPaid = false, paymentMethod?: 'cash' | 'card' | 'upi') => {
     if (items.length === 0) return;
-    if (!selectedTable) {
+    // Read directly from store to avoid stale closure
+    const activeTable = useTableStore.getState().selectedTable;
+    if (!activeTable) {
       alert("Please select a table from the Floor Plan first.");
       navigate(ROUTES.ADMIN_FLOORS);
       return;
@@ -263,7 +266,7 @@ export const OrderView: React.FC = () => {
     try {
       const order = await orderService.create({
         sessionId: activeSession.id,
-        tableId: selectedTable.id,
+        tableId: activeTable.id,
         customerId: customerId || undefined,
         subtotal: totals.subtotal,
         discount: totals.discountAmount,
@@ -290,6 +293,8 @@ export const OrderView: React.FC = () => {
       }
 
       clearCart();
+      // Clear table assignment after order is placed
+      useTableStore.getState().setSelectedTable(null);
       window.open(ROUTES.KDS, '_blank');
       navigate(ROUTES.POS_ORDERS);
     } catch (error: any) {
@@ -360,10 +365,28 @@ export const OrderView: React.FC = () => {
               </button>
             )}
           </div>
-          {selectedTable && (
-            <span className="text-xs font-bold text-odoo-purple">
-              Table {selectedTable.tableNumber} ({selectedTable.numberOfSeats} Seats)
-            </span>
+          {/* Table assignment indicator */}
+          {selectedTable ? (
+            <div className="flex items-center justify-between text-xs">
+              <span className="flex items-center gap-1.5 font-bold text-odoo-purple">
+                <UtensilsCrossed className="w-3.5 h-3.5" />
+                Table {selectedTable.tableNumber} ({selectedTable.numberOfSeats} Seats)
+              </span>
+              <button
+                onClick={() => { setPendingAction(null); setTableModalOpen(true); }}
+                className="text-xs text-odoo-teal font-semibold hover:underline cursor-pointer"
+              >
+                Change
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => { setPendingAction(null); setTableModalOpen(true); }}
+              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-odoo-purple font-semibold cursor-pointer transition-colors"
+            >
+              <UtensilsCrossed className="w-3.5 h-3.5" />
+              + Assign Table
+            </button>
           )}
         </div>
 
