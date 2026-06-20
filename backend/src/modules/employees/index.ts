@@ -1,1 +1,1 @@
-export * from './routes';
+// Empty module

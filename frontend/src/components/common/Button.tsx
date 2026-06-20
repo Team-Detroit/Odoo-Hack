@@ -7,24 +7,24 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants = {
-  primary: 'bg-teal-600 text-white hover:bg-teal-700 disabled:bg-teal-300',
+  primary: 'bg-odoo-teal text-white hover:bg-odoo-teal-hover disabled:bg-teal-300 shadow-sm',
   secondary: 'bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:bg-gray-100 disabled:text-gray-400',
-  danger: 'bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300',
+  danger: 'bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300 shadow-sm',
   ghost: 'text-gray-600 hover:bg-gray-100 disabled:text-gray-300',
-  outline: 'border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:text-gray-300',
+  outline: 'border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:text-gray-300 shadow-sm',
 };
 
 const sizes = {
-  sm: 'px-3 py-1.5 text-sm rounded',
-  md: 'px-4 py-2 text-sm rounded-md',
-  lg: 'px-5 py-2.5 text-base rounded-lg',
+  sm: 'px-3 py-1.5 text-xs font-semibold rounded-md',
+  md: 'px-4 py-2 text-sm font-semibold rounded-md',
+  lg: 'px-5 py-2.5 text-base font-semibold rounded-lg',
 };
 
 export const Button: React.FC<ButtonProps> = ({
   variant = 'primary', size = 'md', isLoading, className = '', children, disabled, ...props
 }) => (
   <button
-    className={`inline-flex items-center justify-center gap-2 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-1 ${variants[variant]} ${sizes[size]} ${className}`}
+    className={`inline-flex items-center justify-center gap-2 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-odoo-teal focus:ring-offset-1 ${variants[variant]} ${sizes[size]} ${className}`}
     disabled={disabled || isLoading}
     {...props}
   >

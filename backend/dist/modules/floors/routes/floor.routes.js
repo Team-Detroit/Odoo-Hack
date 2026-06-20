@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const floor_controller_1 = require("../controller/floor.controller");
+const router = (0, express_1.Router)();
+const controller = new floor_controller_1.FloorController();
+router.get('/floors', controller.getAllFloors.bind(controller));
+router.get('/floors/:id', controller.getFloorById.bind(controller));
+router.post('/floors', controller.createFloor.bind(controller));
+router.put('/floors/:id', controller.updateFloor.bind(controller));
+router.delete('/floors/:id', controller.deleteFloor.bind(controller));
+exports.default = router;

@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import { hash } from "bcrypt";
+import { hash } from "bcryptjs";
+import process from "process";
 
 const prisma = new PrismaClient();
 
@@ -59,7 +60,7 @@ async function main() {
       name: "Chef Kitchen",
       email: "kitchen@cafe.com",
       password: hashedPassword,
-      role: "KITCHEN",
+      role: "EMPLOYEE",
     },
   });
 

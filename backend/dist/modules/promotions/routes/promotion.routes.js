@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const promotion_controller_1 = require("../controller/promotion.controller");
+const router = (0, express_1.Router)();
+const controller = new promotion_controller_1.PromotionController();
+router.get('/promotions', controller.getAllPromotions.bind(controller));
+router.get('/promotions/:id', controller.getPromotionById.bind(controller));
+router.post('/promotions', controller.createPromotion.bind(controller));
+router.put('/promotions/:id', controller.updatePromotion.bind(controller));
+router.delete('/promotions/:id', controller.deletePromotion.bind(controller));
+exports.default = router;

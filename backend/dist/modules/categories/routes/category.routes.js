@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const category_controller_1 = require("../controller/category.controller");
+const router = (0, express_1.Router)();
+const controller = new category_controller_1.CategoryController();
+router.get('/categories', controller.getAllCategories.bind(controller));
+router.get('/categories/:id', controller.getCategoryById.bind(controller));
+router.post('/categories', controller.createCategory.bind(controller));
+router.put('/categories/:id', controller.updateCategory.bind(controller));
+router.delete('/categories/:id', controller.deleteCategory.bind(controller));
+exports.default = router;

@@ -31,14 +31,14 @@ import { SelfOrderingSettings } from '../pages/admin/SelfOrderingSettings';
 import { Reports } from '../pages/admin/Reports';
 
 // POS
-import { OrderView } from '../pages/pos/OrderView';
-import { Orders } from '../pages/pos/Orders';
-import { OrderDetail } from '../pages/pos/OrderDetail';
-import { TableView } from '../pages/pos/TableView';
-import { Customers } from '../pages/pos/Customers';
+import { OrderView } from '../pages/POS/OrderView';
+import { Orders } from '../pages/POS/Orders';
+import { OrderDetail } from '../pages/POS/OrderDetail';
+import { TableView } from '../pages/POS/TableView';
+import { Customers } from '../pages/POS/Customers';
 
 // KDS
-import { KdsBoard } from '../pages/kds/KdsBoard';
+import { KdsBoard } from '../pages/KDS/KdsBoard';
 
 // Customer Display
 import { CustomerDisplay } from '../pages/customer-display/CustomerDisplay';

@@ -7,10 +7,13 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+//////////////////////////////////////////////////
+// ENUMS
+//////////////////////////////////////////////////
+
 enum UserRole {
   ADMIN
   EMPLOYEE
-  KITCHEN
 }
 
 enum SessionStatus {
@@ -22,7 +25,6 @@ enum TableStatus {
   AVAILABLE
   OCCUPIED
   RESERVED
-  CLEANING
 }
 
 enum OrderStatus {
@@ -49,4 +51,252 @@ enum KitchenStatus {
   TO_COOK
   PREPARING
   COMPLETED
+}
+
+//////////////////////////////////////////////////
+// MODELS
+//////////////////////////////////////////////////
+
+model User {
+  id String @id @default(uuid())
+
+  name String
+
+  email String @unique
+
+  password String
+
+  role UserRole
+
+  sessions Session[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id String @id @default(uuid())
+
+  name String
+
+  color String?
+
+  products Product[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id String @id @default(uuid())
+
+  name String
+
+  description String?
+
+  price Float
+
+  tax Float @default(0)
+
+  image String?
+
+  available Boolean @default(true)
+
+  isKitchenItem Boolean @default(true)
+
+  categoryId String
+
+  category Category @relation(fields: [categoryId], references: [id])
+
+  orderItems OrderItem[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+}
+
+model Floor {
+  id String @id @default(uuid())
+
+  name String
+
+  tables Table[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+}
+
+model Table {
+  id String @id @default(uuid())
+
+  number Int @unique
+
+  seats Int
+
+  status TableStatus @default(AVAILABLE)
+
+  floorId String
+
+  floor Floor @relation(fields: [floorId], references: [id])
+
+  orders Order[]
+
+  selfOrderToken SelfOrderToken?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+}
+
+model Session {
+  id String @id @default(uuid())
+
+  userId String
+
+  user User @relation(fields: [userId], references: [id])
+
+  status SessionStatus @default(OPEN)
+
+  openedAt DateTime @default(now())
+
+  closedAt DateTime?
+
+  orders Order[]
+}
+
+model Customer {
+  id String @id @default(uuid())
+
+  name String
+
+  phone String?
+
+  email String?
+
+  orders Order[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id String @id @default(uuid())
+
+  sessionId String
+
+  session Session @relation(fields: [sessionId], references: [id])
+
+  tableId String
+
+  table Table @relation(fields: [tableId], references: [id])
+
+  customerId String?
+
+  customer Customer? @relation(fields: [customerId], references: [id])
+
+  status OrderStatus @default(DRAFT)
+
+  subtotal Float
+
+  discount Float @default(0)
+
+  tax Float @default(0)
+
+  total Float
+
+  items OrderItem[]
+
+  payment Payment?
+
+  kitchenTicket KitchenTicket?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+}
+
+model OrderItem {
+  id String @id @default(uuid())
+
+  orderId String
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  productId String
+
+  product Product @relation(fields: [productId], references: [id])
+
+  quantity Int
+
+  price Float
+
+  total Float
+}
+
+model Payment {
+  id String @id @default(uuid())
+
+  orderId String @unique
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  method PaymentMethod
+
+  status PaymentStatus @default(PENDING)
+
+  amount Float
+
+  transactionId String?
+
+  paidAt DateTime?
+}
+
+model Coupon {
+  id String @id @default(uuid())
+
+  code String @unique
+
+  discount Float
+
+  active Boolean @default(true)
+}
+
+model Promotion {
+  id String @id @default(uuid())
+
+  name String
+
+  description String?
+
+  discount Float
+
+  active Boolean @default(true)
+}
+
+model KitchenTicket {
+  id String @id @default(uuid())
+
+  orderId String @unique
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  status KitchenStatus @default(TO_COOK)
+
+  updatedAt DateTime @updatedAt
+}
+
+model SelfOrderToken {
+  id String @id @default(uuid())
+
+  token String @unique
+
+  tableId String @unique
+
+  table Table @relation(fields: [tableId], references: [id])
+
+  active Boolean @default(true)
 }

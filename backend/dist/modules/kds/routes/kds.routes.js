@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const kds_controller_1 = require("../controller/kds.controller");
+const router = (0, express_1.Router)();
+const controller = new kds_controller_1.KdsController();
+router.get('/kitchen-tickets', controller.getAllKitchenTickets.bind(controller));
+router.get('/kitchen-tickets/:id', controller.getKitchenTicketById.bind(controller));
+router.get('/kitchen-tickets/status/:status', controller.getTicketsByStatus.bind(controller));
+router.patch('/kitchen-tickets/:id/status', controller.updateTicketStatus.bind(controller));
+exports.default = router;

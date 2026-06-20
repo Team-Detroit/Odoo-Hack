@@ -5,6 +5,7 @@ import http from "http";
 import { Server } from "socket.io";
 
 import app from "./app";
+import { setSocketServer } from "./shared/socket";
 
 dotenv.config();
 
@@ -17,6 +18,8 @@ export const io = new Server(server, {
     origin: "*",
   },
 });
+
+setSocketServer(io);
 
 io.on("connection", (socket) => {
   console.log(`Socket Connected ${socket.id}`);

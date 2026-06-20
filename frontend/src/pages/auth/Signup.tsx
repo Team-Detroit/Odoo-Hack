@@ -27,11 +27,14 @@ export const Signup: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-8 w-full">
+    <div className="bg-white rounded-2xl shadow-xl p-8 w-full border border-gray-100">
       <div className="text-center mb-7">
-        <div className="text-4xl mb-2">☕</div>
-        <h1 className="text-2xl font-bold text-gray-800">Create Account</h1>
-        <p className="text-sm text-gray-400 mt-1">Join Odoo Cafe POS</p>
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <span className="font-script text-4xl font-bold text-odoo-purple">Odoo</span>
+          <span className="text-sm font-semibold uppercase tracking-wider text-white bg-odoo-teal px-2 py-0.5 rounded shadow-sm">Cafe</span>
+        </div>
+        <h1 className="text-xl font-bold text-gray-800">Create Account</h1>
+        <p className="text-sm text-gray-500 mt-1">Join Odoo Cafe POS</p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input label="Full Name" placeholder="John Doe" value={name} onChange={e => setName(e.target.value)} disabled={isLoading} />
@@ -42,7 +45,7 @@ export const Signup: React.FC = () => {
         <Button type="submit" className="w-full" size="lg" isLoading={isLoading}>Create Account</Button>
       </form>
       <p className="text-center text-sm text-gray-500 mt-5">
-        Already have an account? <Link to={ROUTES.LOGIN} className="text-teal-600 font-medium hover:underline">Sign in</Link>
+        Already have an account? <Link to={ROUTES.LOGIN} className="text-odoo-teal font-medium hover:underline">Sign in</Link>
       </p>
     </div>
   );

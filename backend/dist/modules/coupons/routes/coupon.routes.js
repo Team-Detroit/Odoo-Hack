@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const coupon_controller_1 = require("../controller/coupon.controller");
+const router = (0, express_1.Router)();
+const controller = new coupon_controller_1.CouponController();
+router.get('/coupons', controller.getAllCoupons.bind(controller));
+router.get('/coupons/:id', controller.getCouponById.bind(controller));
+router.get('/coupons/code/:code', controller.getCouponByCode.bind(controller));
+router.post('/coupons', controller.createCoupon.bind(controller));
+router.put('/coupons/:id', controller.updateCoupon.bind(controller));
+router.delete('/coupons/:id', controller.deleteCoupon.bind(controller));
+exports.default = router;

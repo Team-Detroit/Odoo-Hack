@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const table_controller_1 = require("../controller/table.controller");
+const router = (0, express_1.Router)();
+const controller = new table_controller_1.TableController();
+router.get('/tables', controller.getAllTables.bind(controller));
+router.get('/tables/:id', controller.getTableById.bind(controller));
+router.post('/tables', controller.createTable.bind(controller));
+router.put('/tables/:id', controller.updateTable.bind(controller));
+router.delete('/tables/:id', controller.deleteTable.bind(controller));
+router.patch('/tables/:id/status', controller.updateTableStatus.bind(controller));
+exports.default = router;
