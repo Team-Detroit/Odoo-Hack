@@ -2,7 +2,17 @@ import axios from 'axios';
 import type { AxiosInstance, AxiosError, AxiosResponse } from 'axios';
 import { AUTH_TOKEN_KEY } from '../constants/routes';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const getApiUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    const host = window.location.host;
+    if (host.includes('-5173.')) {
+      return `https://${host.replace('-5173.', '-5000.')}/api`;
+    }
+  }
+  return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+};
+
+const API_URL = getApiUrl();
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_URL,

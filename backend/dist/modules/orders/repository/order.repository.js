@@ -73,9 +73,16 @@ class OrderRepository {
         if (data.status === 'PAID' || data.status === 'SENT_TO_KITCHEN') {
             try {
                 if (data.status === 'PAID' && updatedOrder.tableId) {
+                    // If self-ordering, keep the table occupied. Otherwise free it.
                     await prisma_1.default.table.update({
                         where: { id: updatedOrder.tableId },
-                        data: { status: 'AVAILABLE' }
+                        data: { status: updatedOrder.selfOrder ? 'OCCUPIED' : 'AVAILABLE' }
+                    });
+                }
+                else if (data.status === 'SENT_TO_KITCHEN' && updatedOrder.tableId) {
+                    await prisma_1.default.table.update({
+                        where: { id: updatedOrder.tableId },
+                        data: { status: 'OCCUPIED' }
                     });
                 }
                 await prisma_1.default.kitchenTicket.upsert({

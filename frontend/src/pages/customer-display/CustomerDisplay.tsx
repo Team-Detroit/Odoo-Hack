@@ -4,6 +4,7 @@ import { productService } from '../../services/productService';
 import { categoryService } from '../../services/categoryService';
 import { tableService } from '../../services/tableService';
 import { sessionService } from '../../services/sessionService';
+import { selfOrderingService } from '../../services/selfOrderingService';
 import { Product } from '../../types/product';
 import { Table } from '../../types/table';
 import { Session } from '../../types/session';
@@ -23,7 +24,11 @@ import {
   Percent,
   Check,
   AlertCircle,
-  HelpCircle
+  HelpCircle,
+  AlertTriangle,
+  Search,
+  Utensils,
+  Banknote
 } from 'lucide-react';
 
 interface CartItem {
@@ -54,6 +59,8 @@ const getProductImage = (name: string): string => {
 };
 
 export const CustomerDisplay: React.FC = () => {
+  const [isSelfOrderingEnabled, setIsSelfOrderingEnabled] = useState(true);
+
   // DB States
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -95,13 +102,15 @@ export const CustomerDisplay: React.FC = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [prods, cats, tbls, activeSess] = await Promise.all([
+      const [prods, cats, tbls, activeSess, config] = await Promise.all([
         productService.getAll().catch(() => productService.mockProducts as any),
         categoryService.getAll().catch(() => categoryService.mockCategories as any),
         tableService.getAll().catch(() => []),
-        sessionService.getActivePublic().catch(() => null)
+        sessionService.getActivePublic().catch(() => null),
+        selfOrderingService.getConfig().catch(() => ({ isEnabled: true }))
       ]);
 
+      setIsSelfOrderingEnabled(!!config?.isEnabled);
       const activeProds = (prods || []).filter((p: any) => p.isActive);
       const activeCats = (cats || []).filter((c: any) => c.isActive);
 
@@ -110,11 +119,17 @@ export const CustomerDisplay: React.FC = () => {
       setTables(tbls || []);
       setSession(activeSess);
 
-      // Automatically select table if tableId is present in URL
+      // Automatically select table if tableId or table is present in URL
       const searchParams = new URLSearchParams(window.location.search);
-      const tableId = searchParams.get('tableId');
-      if (tableId && tbls && tbls.length > 0) {
-        const found = tbls.find((t: Table) => t.id === tableId);
+      const tableParam = searchParams.get('tableId') || searchParams.get('table');
+      if (tableParam && tbls && tbls.length > 0) {
+        let found = tbls.find((t: Table) => t.id === tableParam);
+        if (!found) {
+          const cleanNum = tableParam.replace(/\D/g, '');
+          if (cleanNum) {
+            found = tbls.find((t: Table) => String(t.tableNumber ?? t.number) === cleanNum);
+          }
+        }
         if (found) {
           setSelectedTable(found);
           setDiningOption('dine_in');
@@ -315,18 +330,35 @@ export const CustomerDisplay: React.FC = () => {
 
   const startCheckout = () => {
     if (cart.length === 0) return;
-    setDiningOption(null);
-    setSelectedTable(null);
+    
+    const searchParams = new URLSearchParams(window.location.search);
+    const hasTableQuery = searchParams.get('tableId') || searchParams.get('table');
+    
+    if (hasTableQuery && selectedTable) {
+      setDiningOption('dine_in');
+      setStep('customer_info');
+    } else {
+      setDiningOption(null);
+      setSelectedTable(null);
+      setStep('dining_choice');
+    }
     setPaymentOption(null);
     setPaymentSubMethod(null);
-    setStep('dining_choice');
   };
 
   const resetAll = () => {
     setCart([]);
     setStep('menu');
-    setDiningOption(null);
-    setSelectedTable(null);
+    
+    const searchParams = new URLSearchParams(window.location.search);
+    const hasTableQuery = searchParams.get('tableId') || searchParams.get('table');
+    
+    if (hasTableQuery && selectedTable) {
+      setDiningOption('dine_in');
+    } else {
+      setDiningOption(null);
+      setSelectedTable(null);
+    }
     setPaymentOption(null);
     setPaymentSubMethod(null);
     setUpiRefNo('');
@@ -387,6 +419,17 @@ export const CustomerDisplay: React.FC = () => {
           </div>
         </header>
 
+        {/* Warning Banner if Self-Ordering is Disabled */}
+        {!isSelfOrderingEnabled && (
+          <div className="bg-red-50 border-b border-red-200 px-6 py-4 flex items-center gap-3 shrink-0 shadow-sm">
+            <AlertTriangle className="w-6 h-6 text-red-500 shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-red-800">Self Ordering is currently unavailable.</p>
+              <p className="text-xs text-red-655 mt-0.5">Please place your order with our staff at the counter.</p>
+            </div>
+          </div>
+        )}
+
         {/* Content area */}
         <div className="flex-1 flex overflow-hidden">
           {/* Products Sidebar Grid */}
@@ -434,7 +477,7 @@ export const CustomerDisplay: React.FC = () => {
             <div className="flex-1 overflow-y-auto mt-4 pr-1">
               {filtered.length === 0 ? (
                 <div className="text-center py-20 bg-white border border-gray-200 rounded-2xl p-6">
-                  <span className="text-4xl">🔍</span>
+                  <Search className="w-10 h-10 text-gray-300 mx-auto" />
                   <p className="text-gray-400 font-semibold mt-2">No matching products found</p>
                 </div>
               ) : (
@@ -460,29 +503,31 @@ export const CustomerDisplay: React.FC = () => {
                           </div>
                           <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
                             <span className="font-extrabold text-odoo-teal text-sm">₹{p.price.toFixed(2)}</span>
-                            {cartItem ? (
-                              <div className="flex items-center bg-teal-50 border border-teal-200 rounded-lg p-0.5 shadow-sm">
+                            {isSelfOrderingEnabled && (
+                              cartItem ? (
+                                <div className="flex items-center bg-teal-50 border border-teal-200 rounded-lg p-0.5 shadow-sm">
+                                  <button
+                                    onClick={() => updateQty(p.id, cartItem.qty - 1)}
+                                    className="w-6 h-6 bg-white rounded text-odoo-teal hover:bg-teal-100 text-sm font-bold flex items-center justify-center transition-colors cursor-pointer"
+                                  >
+                                    −
+                                  </button>
+                                  <span className="w-6 text-center text-xs font-bold text-teal-800">{cartItem.qty}</span>
+                                  <button
+                                    onClick={() => updateQty(p.id, cartItem.qty + 1)}
+                                    className="w-6 h-6 bg-white rounded text-odoo-teal hover:bg-teal-100 text-sm font-bold flex items-center justify-center transition-colors cursor-pointer"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              ) : (
                                 <button
-                                  onClick={() => updateQty(p.id, cartItem.qty - 1)}
-                                  className="w-6 h-6 bg-white rounded text-odoo-teal hover:bg-teal-100 text-sm font-bold flex items-center justify-center transition-colors cursor-pointer"
+                                  onClick={() => addToCart(p)}
+                                  className="px-3.5 py-1.5 bg-odoo-teal text-white rounded-lg text-xs font-bold hover:bg-odoo-teal-hover transition-colors shadow-sm cursor-pointer"
                                 >
-                                  −
+                                  + Add
                                 </button>
-                                <span className="w-6 text-center text-xs font-bold text-teal-800">{cartItem.qty}</span>
-                                <button
-                                  onClick={() => updateQty(p.id, cartItem.qty + 1)}
-                                  className="w-6 h-6 bg-white rounded text-odoo-teal hover:bg-teal-100 text-sm font-bold flex items-center justify-center transition-colors cursor-pointer"
-                                >
-                                  +
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => addToCart(p)}
-                                className="px-3.5 py-1.5 bg-odoo-teal text-white rounded-lg text-xs font-bold hover:bg-odoo-teal-hover transition-colors shadow-sm cursor-pointer"
-                              >
-                                + Add
-                              </button>
+                              )
                             )}
                           </div>
                         </div>
@@ -495,7 +540,7 @@ export const CustomerDisplay: React.FC = () => {
           </main>
 
           {/* Desktop Cart Sidebar (Right) */}
-          <aside className="w-88 bg-white border-l border-gray-200 flex flex-col shrink-0 shadow-lg hidden sm:flex">
+          <aside className={`w-88 bg-white border-l border-gray-200 flex flex-col shrink-0 shadow-lg ${isSelfOrderingEnabled ? 'hidden sm:flex' : 'hidden'}`}>
             <div className="px-5 py-4 border-b border-gray-150 flex items-center justify-between bg-gray-50/50">
               <h3 className="font-bold text-gray-800 text-sm uppercase tracking-wider flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4 text-odoo-purple" /> Your Cart
@@ -513,7 +558,7 @@ export const CustomerDisplay: React.FC = () => {
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
               {cart.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center text-gray-400">
-                  <span className="text-5xl mb-2">🛒</span>
+                  <ShoppingCart className="w-12 h-12 text-gray-300 mb-2" />
                   <p className="text-sm font-semibold">Your cart is empty</p>
                   <p className="text-xs text-gray-400 mt-1 max-w-xs">Browse the categories to add delicious drinks & food items!</p>
                 </div>
@@ -576,7 +621,7 @@ export const CustomerDisplay: React.FC = () => {
         </div>
 
         {/* Mobile Sticky Cart Summary Bar */}
-        {cart.length > 0 && (
+        {isSelfOrderingEnabled && cart.length > 0 && (
           <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex items-center justify-between shadow-2xl z-30">
             <div onClick={() => setIsMobileCartOpen(true)} className="flex items-center gap-2.5 cursor-pointer">
               <div className="relative bg-teal-100 text-odoo-teal p-2 rounded-xl">
@@ -600,7 +645,7 @@ export const CustomerDisplay: React.FC = () => {
         )}
 
         {/* Mobile Cart Slider Drawer */}
-        {isMobileCartOpen && (
+        {isSelfOrderingEnabled && isMobileCartOpen && (
           <div className="fixed inset-0 bg-black/50 z-40 sm:hidden flex items-end">
             <div className="bg-white rounded-t-3xl w-full max-h-[80vh] flex flex-col overflow-hidden animate-slide-up shadow-2xl">
               <div className="px-5 py-4 border-b border-gray-150 flex items-center justify-between bg-gray-50/50">
@@ -731,7 +776,7 @@ export const CustomerDisplay: React.FC = () => {
                     diningOption === 'dine_in' ? 'border-odoo-teal bg-teal-50/30' : 'border-gray-250 bg-white'
                   }`}
                 >
-                  <span className="text-5xl group-hover:scale-110 transition-transform">🍽️</span>
+                  <Utensils className="w-12 h-12 text-odoo-teal group-hover:scale-110 transition-transform duration-300" />
                   <h3 className="font-extrabold text-sm text-gray-800 mt-3">Dine In</h3>
                   <p className="text-xs text-gray-400 mt-1 max-w-[200px]">Eat comfortably at one of our tables.</p>
                 </button>
@@ -745,7 +790,7 @@ export const CustomerDisplay: React.FC = () => {
                     diningOption === 'takeaway' ? 'border-odoo-teal bg-teal-50/30' : 'border-gray-250 bg-white'
                   }`}
                 >
-                  <span className="text-5xl group-hover:scale-110 transition-transform">🥡</span>
+                  <ShoppingBag className="w-12 h-12 text-orange-500 group-hover:scale-110 transition-transform duration-300" />
                   <h3 className="font-extrabold text-sm text-gray-800 mt-3">Takeaway</h3>
                   <p className="text-xs text-gray-400 mt-1 max-w-[200px]">Pack and pick up your order to go.</p>
                 </button>
@@ -837,7 +882,15 @@ export const CustomerDisplay: React.FC = () => {
               {/* Navigation */}
               <div className="flex justify-between pt-4 border-t border-gray-100">
                 <button
-                  onClick={() => setStep('dining_choice')}
+                  onClick={() => {
+                    const searchParams = new URLSearchParams(window.location.search);
+                    const hasTableQuery = searchParams.get('tableId') || searchParams.get('table');
+                    if (hasTableQuery) {
+                      setStep('menu');
+                    } else {
+                      setStep('dining_choice');
+                    }
+                  }}
                   className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" /> Back
@@ -871,7 +924,7 @@ export const CustomerDisplay: React.FC = () => {
                     paymentOption === 'online' ? 'border-odoo-teal bg-teal-50/30' : 'border-gray-250 bg-white'
                   }`}
                 >
-                  <span className="text-5xl group-hover:scale-110 transition-transform">💳</span>
+                  <CreditCard className="w-12 h-12 text-odoo-teal group-hover:scale-110 transition-transform duration-300" />
                   <h3 className="font-extrabold text-sm text-gray-800 mt-3">Online Pay</h3>
                   <p className="text-xs text-gray-400 mt-1 max-w-[200px]">Pay securely here using Card or UPI.</p>
                 </button>
@@ -885,7 +938,7 @@ export const CustomerDisplay: React.FC = () => {
                     paymentOption === 'counter' ? 'border-odoo-teal bg-teal-50/30' : 'border-gray-250 bg-white'
                   }`}
                 >
-                  <span className="text-5xl group-hover:scale-110 transition-transform">💵</span>
+                  <Banknote className="w-12 h-12 text-emerald-600 group-hover:scale-110 transition-transform duration-300" />
                   <h3 className="font-extrabold text-sm text-gray-800 mt-3">Pay at Counter</h3>
                   <p className="text-xs text-gray-400 mt-1 max-w-[200px]">Collect token and pay Cash/Card at the counter.</p>
                 </button>
@@ -1065,8 +1118,8 @@ export const CustomerDisplay: React.FC = () => {
                 {/* Pulse Green Dot */}
                 <div className="relative">
                   <div className="absolute inset-0 bg-green-500/20 rounded-full animate-ping scale-150"></div>
-                  <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-md relative z-10">
-                    ✓
+                  <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center text-white shadow-md relative z-10">
+                    <Check className="w-8 h-8 stroke-[3]" />
                   </div>
                 </div>
                 <h2 className="text-xl font-extrabold text-gray-800 mt-5">Order Placed Successfully!</h2>

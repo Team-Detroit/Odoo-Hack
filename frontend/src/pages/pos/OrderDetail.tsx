@@ -7,6 +7,7 @@ import { Button } from '../../components/common/Button';
 import { Spinner } from '../../components/common/Spinner';
 import { ConfirmDeleteModal } from '../../components/common/ConfirmDeleteModal';
 import { ROUTES } from '../../constants/routes';
+import { Smartphone, Monitor } from 'lucide-react';
 
 export const OrderDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -47,7 +48,11 @@ export const OrderDetail: React.FC = () => {
             ['Customer', order.customer?.name ?? '—'],
             ['Table', order.table ? `T${order.table.tableNumber ?? order.table.number}` : '—'],
             ['Session', order.sessionId],
-            ['Order Type', order.selfOrder ? '📱 Self-Ordering Kiosk' : '💻 POS Register'],
+            ['Order Type', order.selfOrder ? (
+              <span className="flex items-center gap-1.5"><Smartphone className="w-4 h-4 text-purple-600" /> Self-Ordering Kiosk</span>
+            ) : (
+              <span className="flex items-center gap-1.5"><Monitor className="w-4 h-4 text-teal-600" /> POS Register</span>
+            )],
             ['Payment Info', order.paymentTag ?? '—'],
           ].map(([k, v]) => (
             <div key={k} className="bg-white px-4 py-3">

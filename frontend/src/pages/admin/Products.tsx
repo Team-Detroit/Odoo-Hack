@@ -9,6 +9,7 @@ import { Input } from '../../components/common/Input';
 import { Select } from '../../components/common/Select';
 import { ConfirmDeleteModal } from '../../components/common/ConfirmDeleteModal';
 import { UNITS_OF_MEASURE } from '../../constants/unitsOfMeasure';
+import { Utensils } from 'lucide-react';
 
 // ─── Product Form Modal (unchanged logic) ────────────────────────────────────
 
@@ -307,7 +308,7 @@ export const Products: React.FC = () => {
                   <div className="w-11 h-11 rounded-lg bg-gray-100 shrink-0 overflow-hidden flex items-center justify-center">
                     {p.imageUrl
                       ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
-                      : <span className="text-lg">🍽️</span>
+                      : <Utensils className="w-5 h-5 text-gray-400" />
                     }
                   </div>
                   <span className="font-semibold text-gray-900 text-sm leading-tight">{p.name}</span>

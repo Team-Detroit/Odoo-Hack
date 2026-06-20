@@ -54,5 +54,37 @@ class SelfOrderController {
             res.status(500).json((0, response_util_1.errorResponse)('Failed to fetch order status', error.message));
         }
     }
+    async getConfig(req, res) {
+        const fs = require('fs');
+        const path = require('path');
+        const CONFIG_FILE = path.join(process.cwd(), 'self_ordering_config.json');
+        let isEnabled = false;
+        let mode = 'online';
+        try {
+            if (fs.existsSync(CONFIG_FILE)) {
+                const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+                isEnabled = !!config.isEnabled;
+                mode = config.mode || 'online';
+            }
+        }
+        catch (e) {
+            console.error('Error reading self ordering config:', e);
+        }
+        res.status(200).json({ isEnabled, mode, backgroundColor: '#ffffff', backgroundImages: [], tableQRCodes: [] });
+    }
+    async updateConfig(req, res) {
+        const fs = require('fs');
+        const path = require('path');
+        const CONFIG_FILE = path.join(process.cwd(), 'self_ordering_config.json');
+        const { isEnabled, mode } = req.body;
+        const config = { isEnabled: isEnabled !== undefined ? !!isEnabled : false, mode: mode || 'online' };
+        try {
+            fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8');
+        }
+        catch (e) {
+            console.error('Error writing self ordering config:', e);
+        }
+        res.status(200).json({ ...config, backgroundColor: '#ffffff', backgroundImages: [], tableQRCodes: [] });
+    }
 }
 exports.SelfOrderController = SelfOrderController;

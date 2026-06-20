@@ -5,6 +5,7 @@ import { orderService } from '../../services/orderService';
 import { ORDER_STATUS_COLORS, ORDER_STATUS_LABELS } from '../../constants/orderStatus';
 import { Spinner } from '../../components/common/Spinner';
 import { EmptyState } from '../../components/common/EmptyState';
+import { Smartphone } from 'lucide-react';
 
 export const Orders: React.FC = () => {
   const { data: orders = [], isLoading } = useQuery({ queryKey: ['orders'], queryFn: orderService.mockGetBySession });
@@ -45,8 +46,8 @@ export const Orders: React.FC = () => {
                       <span>{o.customer?.name ?? '—'}</span>
                       <div className="flex flex-wrap gap-1">
                         {o.selfOrder && (
-                          <span className="px-1.5 py-0.5 bg-purple-100 text-purple-855 rounded text-[9px] font-bold uppercase tracking-wider">
-                            📱 Self-Order
+                          <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
+                            <Smartphone className="w-2.5 h-2.5" /> Self-Order
                           </span>
                         )}
                         {o.paymentTag && (

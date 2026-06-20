@@ -4,6 +4,7 @@ import { kdsService } from '../../services/kdsService';
 import { KdsTicket, KdsStage } from '../../types/kds';
 import { KDS_STAGES, KDS_STAGE_LABELS, getNextKdsStage } from '../../constants/kdsStages';
 import { Spinner } from '../../components/common/Spinner';
+import { Smartphone, Monitor, Check } from 'lucide-react';
 
 const stageColors: Record<string, string> = {
   to_cook: 'border-red-300 bg-red-50',
@@ -35,8 +36,8 @@ const TicketCard: React.FC<{ ticket: KdsTicket; onAdvance: (id: string) => void 
       {(ticket.selfOrder || ticket.paymentTag) && (
         <div className="px-3 py-1 bg-white/40 flex flex-wrap gap-1.5 border-b border-gray-100">
           {ticket.selfOrder && (
-            <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-[9px] font-bold uppercase tracking-wider">
-              📱 Self-Ordering
+            <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
+              <Smartphone className="w-2.5 h-2.5" /> Self-Ordering
             </span>
           )}
           {ticket.paymentTag && (
@@ -54,7 +55,7 @@ const TicketCard: React.FC<{ ticket: KdsTicket; onAdvance: (id: string) => void 
         {ticket.items.map(item => (
           <div key={item.id} onClick={() => toggleItem(item.id)}
             className={`flex items-center gap-2 py-1 cursor-pointer rounded px-1 hover:bg-white/50 transition-colors ${doneItems.has(item.id) ? 'opacity-40' : ''}`}>
-            <span className={`w-4 h-4 rounded border flex items-center justify-center text-xs ${doneItems.has(item.id) ? 'bg-green-500 border-green-500 text-white' : 'border-gray-400'}`}>{doneItems.has(item.id) ? '✓' : ''}</span>
+            <span className={`w-4 h-4 rounded border flex items-center justify-center text-xs ${doneItems.has(item.id) ? 'bg-green-500 border-green-500 text-white' : 'border-gray-400'}`}>{doneItems.has(item.id) ? <Check className="w-3 h-3 stroke-[3]" /> : ''}</span>
             <span className={`flex-1 text-sm ${doneItems.has(item.id) ? 'line-through text-gray-400' : 'text-gray-800'}`}>{item.productName}</span>
             <span className="text-xs font-bold text-gray-600">×{item.quantity}</span>
           </div>
@@ -111,7 +112,10 @@ export const KdsBoard: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-gray-100">
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-4">
-        <h1 className="font-bold text-gray-800">🖥️ Kitchen Display</h1>
+        <div className="flex items-center gap-2">
+          <Monitor className="w-5 h-5 text-gray-700" />
+          <h1 className="font-bold text-gray-800">Kitchen Display</h1>
+        </div>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search ticket or product…"
           className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg w-56 focus:outline-none focus:ring-2 focus:ring-teal-500" />
         <span className="ml-auto text-xs text-gray-400">{new Date().toLocaleTimeString('en-IN')}</span>

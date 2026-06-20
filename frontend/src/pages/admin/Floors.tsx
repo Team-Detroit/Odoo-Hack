@@ -15,7 +15,7 @@ import { Modal } from '../../components/common/Modal';
 import { Input } from '../../components/common/Input';
 import { ConfirmDeleteModal } from '../../components/common/ConfirmDeleteModal';
 import { Spinner } from '../../components/common/Spinner';
-import { Move, Maximize2, Trash2, Edit2, Plus, Check, Settings, Layout, Info } from 'lucide-react';
+import { Move, Maximize2, Trash2, Edit2, Plus, Check, Settings, Layout, Info, Monitor } from 'lucide-react';
 
 const FloorFormModal: React.FC<{ open: boolean; onClose: () => void; initial?: Floor }> = ({ open, onClose, initial }) => {
   const qc = useQueryClient();
@@ -584,7 +584,10 @@ export const Floors: React.FC = () => {
                   className="absolute left-[8%] bottom-[8%] w-[10%] h-[12%] bg-[#ebdcb9] border-2 border-amber-800 rounded-lg shadow-md flex flex-col items-center justify-center text-[10px] font-bold text-amber-900"
                   title="Host Desk"
                 >
-                  <span>💻 Desk</span>
+                  <div className="flex items-center gap-1">
+                    <Monitor className="w-3 h-3 text-amber-800" />
+                    <span>Desk</span>
+                  </div>
                   <div className="w-4 h-4 rounded bg-orange-400 border border-orange-600 mt-1 shadow-sm" title="Host Chair" />
                 </div>
 

@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { productService } from '../../services/productService';
 import { categoryService } from '../../services/categoryService';
 import { Product } from '../../types/product';
+import { ChefHat, Coffee, ShoppingCart, Utensils } from 'lucide-react';
 
 interface CartItem { product: Product; qty: number; }
 
@@ -27,7 +28,9 @@ export const SelfOrderMenu: React.FC = () => {
   if (view === 'tracking') return (
     <div className="min-h-screen bg-teal-50 flex flex-col items-center justify-center p-6">
       <div className="bg-white rounded-2xl border border-gray-200 p-8 max-w-sm w-full text-center">
-        <div className="text-4xl mb-3">🍳</div>
+        <div className="flex justify-center mb-3">
+          <ChefHat className="w-12 h-12 text-teal-600" />
+        </div>
         <h2 className="text-xl font-bold text-gray-800 mb-4">Order Placed!</h2>
         <div className="flex justify-between mb-6">
           {['To Cook', 'Preparing', 'Completed'].map((s, i) => (
@@ -47,12 +50,15 @@ export const SelfOrderMenu: React.FC = () => {
       {/* Header */}
       <div className="bg-teal-700 text-white px-4 py-3 sticky top-0 z-10">
         <div className="flex items-center justify-between">
-          <h1 className="font-bold text-lg">☕ Odoo Cafe</h1>
+          <div className="flex items-center gap-1.5">
+            <Coffee className="w-5 h-5 text-white" />
+            <h1 className="font-bold text-lg">Odoo Cafe</h1>
+          </div>
           <div className="flex items-center gap-3">
             {view === 'menu' && <span className="text-xs text-teal-200">Table: {token}</span>}
-            <button onClick={() => setView(view === 'cart' ? 'menu' : 'cart')} className="relative">
-              🛒
-              {cartCount > 0 && <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full text-xs flex items-center justify-center">{cartCount}</span>}
+            <button onClick={() => setView(view === 'cart' ? 'menu' : 'cart')} className="relative p-1">
+              <ShoppingCart className="w-5 h-5 text-white" />
+              {cartCount > 0 && <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full text-[10px] font-bold flex items-center justify-center text-white">{cartCount}</span>}
             </button>
           </div>
         </div>
@@ -70,7 +76,9 @@ export const SelfOrderMenu: React.FC = () => {
           <div className="grid grid-cols-2 gap-3">
             {filtered.map(p => (
               <div key={p.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                <div className="h-24 flex items-center justify-center text-3xl" style={{ backgroundColor: (p.category?.color ?? '#6B7280') + '22' }}>🍽️</div>
+                <div className="h-24 flex items-center justify-center" style={{ backgroundColor: (p.category?.color ?? '#6B7280') + '22' }}>
+                  <Utensils className="w-7 h-7 text-gray-400" />
+                </div>
                 <div className="p-3">
                   <p className="font-semibold text-sm text-gray-800">{p.name}</p>
                   <p className="text-xs text-gray-400">{p.category?.name}</p>
