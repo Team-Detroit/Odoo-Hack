@@ -566,7 +566,7 @@ export const Floors: React.FC = () => {
               }
               setEditMode(!editMode);
             }}
-            variant={editMode ? 'default' : 'outline'}
+            variant={editMode ? 'primary' : 'outline'}
             size="sm"
             className="flex items-center gap-1.5 text-xs h-8"
           >
@@ -584,7 +584,7 @@ export const Floors: React.FC = () => {
               >
                 <Grid className="w-3.5 h-3.5" /> Auto Arrange
               </Button>
-              <Button onClick={() => setTableForm({ open: true, floorId: currentFloorId })} variant="default" size="sm" className="flex items-center gap-1 h-8 text-xs bg-teal-600 hover:bg-teal-700">
+              <Button onClick={() => setTableForm({ open: true, floorId: currentFloorId })} variant="primary" size="sm" className="flex items-center gap-1 h-8 text-xs bg-teal-600 hover:bg-teal-700">
                 <Plus className="w-3.5 h-3.5" /> Add Table
               </Button>
             </>
