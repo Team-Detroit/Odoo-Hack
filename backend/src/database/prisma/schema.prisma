@@ -1,6 +1,3 @@
-// Prisma schema placeholder
-// Define your models here during development.
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,11 +7,46 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Example model (remove or extend as needed)
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  password  String
-  createdAt DateTime @default(now())
+enum UserRole {
+  ADMIN
+  EMPLOYEE
+  KITCHEN
+}
+
+enum SessionStatus {
+  OPEN
+  CLOSED
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  CLEANING
+}
+
+enum OrderStatus {
+  DRAFT
+  SENT_TO_KITCHEN
+  PREPARING
+  COMPLETED
+  PAID
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  UPI
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+}
+
+enum KitchenStatus {
+  TO_COOK
+  PREPARING
+  COMPLETED
 }
