@@ -296,7 +296,7 @@ export const CustomerDisplay: React.FC = () => {
     setSelectedTable(null);
     setPaymentOption(null);
     setPaymentSubMethod(null);
-    setStep('dining_choice');
+    setStep('customer_info');
   };
 
   const resetAll = () => {
@@ -678,19 +678,33 @@ export const CustomerDisplay: React.FC = () => {
 
   // Render Multi-step Checkout screens
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 sm:p-6 font-sans" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-      <div className="bg-white border border-gray-200 shadow-2xl rounded-3xl w-full max-w-2xl overflow-hidden flex flex-col justify-between min-h-[500px]">
+    <div className="min-h-screen bg-white sm:bg-gray-50 flex sm:items-center sm:justify-center p-0 sm:p-6 font-sans" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+      <div className="bg-white border-0 sm:border border-gray-200 shadow-none sm:shadow-2xl rounded-none sm:rounded-3xl w-full max-w-2xl overflow-hidden flex flex-col justify-between min-h-screen sm:min-h-[500px]">
         {/* Checkout Header */}
-        <header className="bg-odoo-purple text-white px-6 py-4 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="font-script text-2xl font-bold text-white">Odoo</span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-odoo-purple bg-white px-1.5 py-0.5 rounded shadow-sm">Cafe</span>
+        <header className="bg-odoo-purple text-white px-6 py-4 flex items-center justify-between shadow-sm shrink-0">
+          <div className="flex items-center gap-3 shrink-0">
+            {step !== 'processing' && step !== 'success' && (
+              <button
+                onClick={() => {
+                  if (step === 'customer_info') setStep('menu');
+                  else if (step === 'payment_choice') setStep('customer_info');
+                  else if (step === 'payment_details') setStep('payment_choice');
+                }}
+                className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-all cursor-pointer sm:hidden"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+            )}
+            <div className="flex items-center gap-1.5">
+              <span className="font-script text-2xl font-bold text-white">Odoo</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-odoo-purple bg-white px-1.5 py-0.5 rounded shadow-sm">Cafe</span>
+            </div>
           </div>
           <span className="text-xs text-purple-200 uppercase tracking-widest font-semibold hidden sm:inline">Checkout Flow</span>
           {step !== 'processing' && step !== 'success' && (
             <button
               onClick={() => setStep('menu')}
-              className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-all cursor-pointer"
+              className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-all cursor-pointer hidden sm:block"
             >
               <X className="w-4 h-4" />
             </button>
@@ -698,142 +712,63 @@ export const CustomerDisplay: React.FC = () => {
         </header>
 
         {/* Checkout Steps Body */}
-        <div className="flex-1 p-6 flex flex-col justify-center">
-          {/* STEP 1: DINE IN vs TAKEAWAY */}
-          {step === 'dining_choice' && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-xl font-bold text-gray-800">Where will you enjoy your meal?</h2>
-                <p className="text-xs text-gray-400 mt-1">Choose your preference to proceed</p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <button
-                  onClick={() => {
-                    setDiningOption('dine_in');
-                    if (tables.length > 0) {
-                      setSelectedTable(tables[0]);
-                    }
-                  }}
-                  className={`border-2 rounded-2xl p-6 text-center hover:border-odoo-teal hover:bg-teal-50/20 transition-all duration-350 cursor-pointer flex flex-col items-center group ${
-                    diningOption === 'dine_in' ? 'border-odoo-teal bg-teal-50/30' : 'border-gray-250 bg-white'
-                  }`}
-                >
-                  <span className="text-5xl group-hover:scale-110 transition-transform">🍽️</span>
-                  <h3 className="font-extrabold text-sm text-gray-800 mt-3">Dine In</h3>
-                  <p className="text-xs text-gray-400 mt-1 max-w-[200px]">Eat comfortably at one of our tables.</p>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setDiningOption('takeaway');
-                    setSelectedTable(null);
-                  }}
-                  className={`border-2 rounded-2xl p-6 text-center hover:border-odoo-teal hover:bg-teal-50/20 transition-all duration-350 cursor-pointer flex flex-col items-center group ${
-                    diningOption === 'takeaway' ? 'border-odoo-teal bg-teal-50/30' : 'border-gray-250 bg-white'
-                  }`}
-                >
-                  <span className="text-5xl group-hover:scale-110 transition-transform">🥡</span>
-                  <h3 className="font-extrabold text-sm text-gray-800 mt-3">Takeaway</h3>
-                  <p className="text-xs text-gray-400 mt-1 max-w-[200px]">Pack and pick up your order to go.</p>
-                </button>
-              </div>
-
-              {/* Dine In - Table Grid Selection */}
-              {diningOption === 'dine_in' && (
-                <div className="space-y-3 pt-3 border-t border-gray-100">
-                  <p className="text-xs font-bold text-gray-600 text-center uppercase tracking-wide">Select your Table Number</p>
-                  {tables.length === 0 ? (
-                    <p className="text-xs text-yellow-600 bg-yellow-50 border border-yellow-250 rounded-lg p-2 text-center">
-                      No tables found in the database. A default table will be assigned automatically.
-                    </p>
-                  ) : (
-                    <div className="flex gap-2 flex-wrap justify-center max-h-[120px] overflow-y-auto p-1">
-                      {tables.map(t => (
-                        <button
-                          key={t.id}
-                          onClick={() => setSelectedTable(t)}
-                          className={`w-12 h-12 rounded-xl text-xs font-bold border-2 transition-all cursor-pointer flex items-center justify-center ${
-                            selectedTable?.id === t.id
-                              ? 'border-odoo-teal bg-odoo-teal text-white shadow-md shadow-teal-100'
-                              : 'border-gray-200 bg-white text-gray-700 hover:border-odoo-teal hover:text-odoo-teal'
-                          }`}
-                        >
-                          T{t.tableNumber}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Navigation */}
-              <div className="flex justify-end pt-4 border-t border-gray-100">
-                <button
-                  disabled={!diningOption || (diningOption === 'dine_in' && tables.length > 0 && !selectedTable)}
-                  onClick={() => setStep('customer_info')}
-                  className="px-6 py-2.5 bg-odoo-teal text-white rounded-xl text-xs font-bold hover:bg-odoo-teal-hover transition-colors shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Continue <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
-
+        <div className="flex-1 p-6 flex flex-col overflow-y-auto">
           {/* STEP: CUSTOMER INFO */}
           {step === 'customer_info' && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-xl font-bold text-gray-800">Your Contact Details</h2>
-                <p className="text-xs text-gray-400 mt-1">Please enter your details to proceed</p>
-              </div>
+            <div className="flex-1 flex flex-col justify-between h-full">
+              <div className="space-y-6 flex-1 flex flex-col justify-center">
+                <div className="text-center">
+                  <h2 className="text-xl font-bold text-gray-800">Your Contact Details</h2>
+                  <p className="text-xs text-gray-400 mt-1">Please enter your details to proceed</p>
+                </div>
 
-              <div className="space-y-4 max-w-sm mx-auto">
-                <div>
-                  <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Full Name <span className="text-red-500">*</span></label>
-                  <input
-                    type="text"
-                    value={custName}
-                    onChange={e => setCustName(e.target.value)}
-                    placeholder="Enter your name"
-                    className="w-full px-4 py-2.5 text-xs bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-odoo-teal"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Email Address</label>
-                  <input
-                    type="email"
-                    value={custEmail}
-                    onChange={e => setCustEmail(e.target.value)}
-                    placeholder="name@example.com"
-                    className="w-full px-4 py-2.5 text-xs bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-odoo-teal"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Phone Number</label>
-                  <input
-                    type="tel"
-                    value={custPhone}
-                    onChange={e => setCustPhone(e.target.value)}
-                    placeholder="Enter phone number"
-                    className="w-full px-4 py-2.5 text-xs bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-odoo-teal"
-                  />
+                <div className="space-y-4 max-w-sm mx-auto w-full">
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Full Name <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={custName}
+                      onChange={e => setCustName(e.target.value)}
+                      placeholder="Enter your name"
+                      className="w-full px-4 py-2.5 text-xs bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-odoo-teal"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Email Address</label>
+                    <input
+                      type="email"
+                      value={custEmail}
+                      onChange={e => setCustEmail(e.target.value)}
+                      placeholder="name@example.com"
+                      className="w-full px-4 py-2.5 text-xs bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-odoo-teal"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Phone Number</label>
+                    <input
+                      type="tel"
+                      value={custPhone}
+                      onChange={e => setCustPhone(e.target.value)}
+                      placeholder="Enter phone number"
+                      className="w-full px-4 py-2.5 text-xs bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-odoo-teal"
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Navigation */}
-              <div className="flex justify-between pt-4 border-t border-gray-100">
+              <div className="flex items-center gap-3 pt-4 border-t border-gray-100 mt-6">
                 <button
-                  onClick={() => setStep('dining_choice')}
-                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                  onClick={() => setStep('menu')}
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer hidden sm:flex"
                 >
                   <ArrowLeft className="w-4 h-4" /> Back
                 </button>
                 <button
                   disabled={!custName.trim()}
                   onClick={() => setStep('payment_choice')}
-                  className="px-6 py-2.5 bg-odoo-teal text-white rounded-xl text-xs font-bold hover:bg-odoo-teal-hover transition-colors shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto px-6 py-3 sm:py-2.5 bg-odoo-teal text-white rounded-xl text-xs font-bold hover:bg-odoo-teal-hover transition-colors shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
                 >
                   Continue <ArrowRight className="w-4 h-4" />
                 </button>
@@ -843,47 +778,49 @@ export const CustomerDisplay: React.FC = () => {
 
           {/* STEP 2: PAYMENT METHOD CHOICE */}
           {step === 'payment_choice' && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-xl font-bold text-gray-800">Select payment method</h2>
-                <p className="text-xs text-gray-400 mt-1">Total amount due: <span className="font-bold text-odoo-teal">₹{total.toFixed(2)}</span></p>
-              </div>
+            <div className="flex-1 flex flex-col justify-between h-full">
+              <div className="space-y-6 flex-1 flex flex-col justify-center">
+                <div className="text-center">
+                  <h2 className="text-xl font-bold text-gray-800">Select payment method</h2>
+                  <p className="text-xs text-gray-400 mt-1">Total amount due: <span className="font-bold text-odoo-teal">₹{total.toFixed(2)}</span></p>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <button
-                  onClick={() => {
-                    setPaymentOption('online');
-                    setPaymentSubMethod('upi'); // default
-                  }}
-                  className={`border-2 rounded-2xl p-6 text-center hover:border-odoo-teal hover:bg-teal-50/20 transition-all duration-350 cursor-pointer flex flex-col items-center group ${
-                    paymentOption === 'online' ? 'border-odoo-teal bg-teal-50/30' : 'border-gray-250 bg-white'
-                  }`}
-                >
-                  <span className="text-5xl group-hover:scale-110 transition-transform">💳</span>
-                  <h3 className="font-extrabold text-sm text-gray-800 mt-3">Online Pay</h3>
-                  <p className="text-xs text-gray-400 mt-1 max-w-[200px]">Pay securely here using Card or UPI.</p>
-                </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto w-full">
+                  <button
+                    onClick={() => {
+                      setPaymentOption('online');
+                      setPaymentSubMethod('upi'); // default
+                    }}
+                    className={`border-2 rounded-2xl p-6 text-center hover:border-odoo-teal hover:bg-teal-50/20 transition-all duration-350 cursor-pointer flex flex-col items-center justify-center group ${
+                      paymentOption === 'online' ? 'border-odoo-teal bg-teal-50/30' : 'border-gray-250 bg-white'
+                    }`}
+                  >
+                    <span className="text-5xl group-hover:scale-110 transition-transform">💳</span>
+                    <h3 className="font-extrabold text-sm text-gray-800 mt-3">Online Pay</h3>
+                    <p className="text-xs text-gray-400 mt-1 max-w-[200px]">Pay securely here using Card or UPI.</p>
+                  </button>
 
-                <button
-                  onClick={() => {
-                    setPaymentOption('counter');
-                    setPaymentSubMethod(null);
-                  }}
-                  className={`border-2 rounded-2xl p-6 text-center hover:border-odoo-teal hover:bg-teal-50/20 transition-all duration-350 cursor-pointer flex flex-col items-center group ${
-                    paymentOption === 'counter' ? 'border-odoo-teal bg-teal-50/30' : 'border-gray-250 bg-white'
-                  }`}
-                >
-                  <span className="text-5xl group-hover:scale-110 transition-transform">💵</span>
-                  <h3 className="font-extrabold text-sm text-gray-800 mt-3">Pay at Counter</h3>
-                  <p className="text-xs text-gray-400 mt-1 max-w-[200px]">Collect token and pay Cash/Card at the counter.</p>
-                </button>
+                  <button
+                    onClick={() => {
+                      setPaymentOption('counter');
+                      setPaymentSubMethod(null);
+                    }}
+                    className={`border-2 rounded-2xl p-6 text-center hover:border-odoo-teal hover:bg-teal-50/20 transition-all duration-350 cursor-pointer flex flex-col items-center justify-center group ${
+                      paymentOption === 'counter' ? 'border-odoo-teal bg-teal-50/30' : 'border-gray-250 bg-white'
+                    }`}
+                  >
+                    <span className="text-5xl group-hover:scale-110 transition-transform">💵</span>
+                    <h3 className="font-extrabold text-sm text-gray-800 mt-3">Pay at Counter</h3>
+                    <p className="text-xs text-gray-400 mt-1 max-w-[200px]">Collect token and pay Cash/Card at the counter.</p>
+                  </button>
+                </div>
               </div>
 
               {/* Navigation */}
-              <div className="flex justify-between pt-4 border-t border-gray-100">
+              <div className="flex items-center gap-3 pt-4 border-t border-gray-100 mt-6">
                 <button
                   onClick={() => setStep('customer_info')}
-                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer hidden sm:flex"
                 >
                   <ArrowLeft className="w-4 h-4" /> Back
                 </button>
@@ -896,7 +833,7 @@ export const CustomerDisplay: React.FC = () => {
                       handlePlaceOrder();
                     }
                   }}
-                  className="px-6 py-2.5 bg-odoo-teal text-white rounded-xl text-xs font-bold hover:bg-odoo-teal-hover transition-colors shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto px-6 py-3 sm:py-2.5 bg-odoo-teal text-white rounded-xl text-xs font-bold hover:bg-odoo-teal-hover transition-colors shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
                 >
                   {paymentOption === 'online' ? 'Continue' : 'Place Order'} <ArrowRight className="w-4 h-4" />
                 </button>
@@ -906,128 +843,154 @@ export const CustomerDisplay: React.FC = () => {
 
           {/* STEP 3: DETAILED PAYMENT DETAILS (UPI/Card Scanner) */}
           {step === 'payment_details' && (
-            <div className="space-y-5">
-              <div className="text-center">
-                <h2 className="text-xl font-bold text-gray-800">Complete Online Payment</h2>
-                <p className="text-xs text-gray-400 mt-1">Secure transactional gateway</p>
-              </div>
+            <div className="flex-1 flex flex-col justify-between h-full">
+              <div className="space-y-5 flex-1 flex flex-col justify-center">
+                <div className="text-center">
+                  <h2 className="text-xl font-bold text-gray-800">Complete Online Payment</h2>
+                  <p className="text-xs text-gray-400 mt-1">Secure transactional gateway</p>
+                </div>
 
-              {/* Tab Selector: UPI vs CARD */}
-              <div className="flex border border-gray-200 rounded-xl overflow-hidden p-0.5 max-w-sm mx-auto bg-gray-50">
-                <button
-                  onClick={() => setPaymentSubMethod('upi')}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    paymentSubMethod === 'upi' ? 'bg-white text-odoo-teal shadow-xs' : 'text-gray-500 hover:text-gray-800'
-                  }`}
-                >
-                  <Smartphone className="w-3.5 h-3.5" /> UPI QR Code
-                </button>
-                <button
-                  onClick={() => setPaymentSubMethod('card')}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    paymentSubMethod === 'card' ? 'bg-white text-odoo-teal shadow-xs' : 'text-gray-500 hover:text-gray-800'
-                  }`}
-                >
-                  <CreditCard className="w-3.5 h-3.5" /> Credit/Debit Card
-                </button>
-              </div>
-
-              <div className="border border-gray-150 rounded-2xl p-5 bg-gray-50/50 max-w-md mx-auto">
-                {/* UPI QR Display */}
-                {paymentSubMethod === 'upi' ? (
-                  <div className="space-y-4 text-center">
-                    <div className="bg-white p-3 rounded-xl inline-block border border-gray-200 shadow-sm mx-auto">
-                      {/* Interactive Simulated QR */}
-                      <div className="w-36 h-36 bg-gray-100 flex flex-col items-center justify-center relative p-1">
-                        <div className="absolute inset-2 border-2 border-black border-dashed opacity-20"></div>
-                        {/* Fake QR blocks */}
-                        <div className="grid grid-cols-5 gap-1.5 w-full h-full p-2">
-                          {Array.from({ length: 25 }).map((_, i) => (
-                            <div
-                              key={i}
-                              className={`rounded-xs ${
-                                (i % 2 === 0 && i % 3 !== 0) || i === 0 || i === 4 || i === 20 || i === 24
-                                  ? 'bg-gray-800'
-                                  : 'bg-transparent'
-                              }`}
-                            ></div>
-                          ))}
-                        </div>
-                        {/* Middle Logo overlay */}
-                        <div className="absolute inset-0 m-auto w-10 h-10 bg-white border border-gray-200 rounded-lg flex items-center justify-center text-[10px] font-bold text-odoo-teal shadow-sm">
-                          UPI
+                <div className="space-y-4 max-w-md mx-auto w-full">
+                  {/* UPI Option Panel */}
+                  <div 
+                    onClick={() => setPaymentSubMethod('upi')}
+                    className={`border-2 rounded-2xl p-4 transition-all duration-250 cursor-pointer ${
+                      paymentSubMethod === 'upi' ? 'border-odoo-teal bg-teal-50/10' : 'border-gray-200 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Smartphone className={`w-5 h-5 ${paymentSubMethod === 'upi' ? 'text-odoo-teal' : 'text-gray-400'}`} />
+                        <div className="text-left">
+                          <span className="text-xs font-bold text-gray-800 block">UPI QR Code</span>
+                          <p className="text-[10px] text-gray-400">Pay using GPay, PhonePe, BHIM, etc.</p>
                         </div>
                       </div>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs font-bold text-gray-800">Scan QR via PhonePe / GPay / BHIM</p>
-                      <p className="text-[10px] text-gray-400">Merchant UPI ID: <span className="font-mono text-gray-600">odoocafe@upi</span></p>
-                      <p className="text-sm font-extrabold text-odoo-purple mt-1">Amount: ₹{total.toFixed(2)}</p>
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                        paymentSubMethod === 'upi' ? 'border-odoo-teal bg-odoo-teal' : 'border-gray-300'
+                      }`}>
+                        {paymentSubMethod === 'upi' && <Check className="w-2.5 h-2.5 text-white" />}
+                      </div>
                     </div>
 
-                    <div className="pt-2">
-                      <input
-                        type="text"
-                        value={upiRefNo}
-                        onChange={e => setUpiRefNo(e.target.value)}
-                        placeholder="Enter UPI Ref No. (Optional)"
-                        className="w-full px-3 py-2 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-odoo-teal text-center"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  /* Card Inputs */
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Card Number</label>
-                      <input
-                        type="text"
-                        value={cardNumber}
-                        onChange={e => setCardNumber(e.target.value)}
-                        placeholder="4111 2222 3333 4444"
-                        maxLength={19}
-                        className="w-full px-3 py-2 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-odoo-teal"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Expiry Date</label>
-                        <input
-                          type="text"
-                          value={cardExpiry}
-                          onChange={e => setCardExpiry(e.target.value)}
-                          placeholder="MM/YY"
-                          maxLength={5}
-                          className="w-full px-3 py-2 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-odoo-teal"
-                        />
+                    {paymentSubMethod === 'upi' && (
+                      <div className="mt-4 pt-4 border-t border-gray-150 space-y-4 text-center animate-fade-in">
+                        <div className="bg-white p-3 rounded-xl inline-block border border-gray-200 shadow-xs mx-auto">
+                          <div className="w-36 h-36 bg-gray-100 flex flex-col items-center justify-center relative p-1">
+                            <div className="absolute inset-2 border-2 border-black border-dashed opacity-20"></div>
+                            <div className="grid grid-cols-5 gap-1.5 w-full h-full p-2">
+                              {Array.from({ length: 25 }).map((_, i) => (
+                                <div
+                                  key={i}
+                                  className={`rounded-xs ${
+                                    (i % 2 === 0 && i % 3 !== 0) || i === 0 || i === 4 || i === 20 || i === 24
+                                      ? 'bg-gray-800'
+                                      : 'bg-transparent'
+                                  }`}
+                                ></div>
+                              ))}
+                            </div>
+                            <div className="absolute inset-0 m-auto w-10 h-10 bg-white border border-gray-200 rounded-lg flex items-center justify-center text-[10px] font-bold text-odoo-teal shadow-xs">
+                              UPI
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs font-bold text-gray-800">Scan QR via PhonePe / GPay / BHIM</p>
+                          <p className="text-[10px] text-gray-400">Merchant UPI ID: <span className="font-mono text-gray-600">odoocafe@upi</span></p>
+                          <p className="text-sm font-extrabold text-odoo-purple mt-1">Amount: ₹{total.toFixed(2)}</p>
+                        </div>
+
+                        <div className="pt-2">
+                          <input
+                            type="text"
+                            value={upiRefNo}
+                            onChange={e => setUpiRefNo(e.target.value)}
+                            placeholder="Enter UPI Ref No. (Optional)"
+                            onClick={e => e.stopPropagation()}
+                            className="w-full px-3 py-2 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-odoo-teal text-center"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">CVV</label>
-                        <input
-                          type="password"
-                          value={cardCvv}
-                          onChange={e => setCardCvv(e.target.value)}
-                          placeholder="***"
-                          maxLength={3}
-                          className="w-full px-3 py-2 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-odoo-teal"
-                        />
+                    )}
+                  </div>
+
+                  {/* Card Option Panel */}
+                  <div 
+                    onClick={() => setPaymentSubMethod('card')}
+                    className={`border-2 rounded-2xl p-4 transition-all duration-250 cursor-pointer ${
+                      paymentSubMethod === 'card' ? 'border-odoo-teal bg-teal-50/10' : 'border-gray-250 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <CreditCard className={`w-5 h-5 ${paymentSubMethod === 'card' ? 'text-odoo-teal' : 'text-gray-400'}`} />
+                        <div className="text-left">
+                          <span className="text-xs font-bold text-gray-800 block">Credit / Debit Card</span>
+                          <p className="text-[10px] text-gray-400">Secure Visa, Mastercard, RuPay, etc.</p>
+                        </div>
+                      </div>
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                        paymentSubMethod === 'card' ? 'border-odoo-teal bg-odoo-teal' : 'border-gray-300'
+                      }`}>
+                        {paymentSubMethod === 'card' && <Check className="w-2.5 h-2.5 text-white" />}
                       </div>
                     </div>
+
+                    {paymentSubMethod === 'card' && (
+                      <div className="mt-4 pt-4 border-t border-gray-150 space-y-3 text-left" onClick={e => e.stopPropagation()}>
+                        <div>
+                          <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Card Number</label>
+                          <input
+                            type="text"
+                            value={cardNumber}
+                            onChange={e => setCardNumber(e.target.value)}
+                            placeholder="4111 2222 3333 4444"
+                            maxLength={19}
+                            className="w-full px-3 py-2 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-odoo-teal"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Expiry Date</label>
+                            <input
+                              type="text"
+                              value={cardExpiry}
+                              onChange={e => setCardExpiry(e.target.value)}
+                              placeholder="MM/YY"
+                              maxLength={5}
+                              className="w-full px-3 py-2 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-odoo-teal"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">CVV</label>
+                            <input
+                              type="password"
+                              value={cardCvv}
+                              onChange={e => setCardCvv(e.target.value)}
+                              placeholder="***"
+                              maxLength={3}
+                              className="w-full px-3 py-2 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-odoo-teal"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
 
               {/* Navigation */}
-              <div className="flex justify-between pt-4 border-t border-gray-100">
+              <div className="flex items-center gap-3 pt-4 border-t border-gray-100 mt-6">
                 <button
                   onClick={() => setStep('payment_choice')}
-                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer hidden sm:flex"
                 >
                   <ArrowLeft className="w-4 h-4" /> Back
                 </button>
                 <button
                   onClick={handlePlaceOrder}
-                  className="px-6 py-2.5 bg-odoo-teal text-white rounded-xl text-xs font-bold hover:bg-odoo-teal-hover transition-colors shadow-md flex items-center gap-1.5 cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-3 sm:py-2.5 bg-odoo-teal text-white rounded-xl text-xs font-bold hover:bg-odoo-teal-hover transition-colors shadow-md flex items-center justify-center gap-1.5 cursor-pointer ml-auto"
                 >
                   <Check className="w-4 h-4" /> Confirm Payment
                 </button>
@@ -1037,9 +1000,9 @@ export const CustomerDisplay: React.FC = () => {
 
           {/* STEP 4: PROCESSING LOADER */}
           {step === 'processing' && (
-            <div className="space-y-4 text-center py-10">
-              <div className="w-16 h-16 border-4 border-odoo-teal border-t-transparent rounded-full animate-spin mx-auto"></div>
-              <div>
+            <div className="flex-1 flex flex-col justify-center items-center py-10 space-y-4">
+              <div className="w-16 h-16 border-4 border-odoo-teal border-t-transparent rounded-full animate-spin"></div>
+              <div className="text-center">
                 <h3 className="font-bold text-gray-800 text-sm">Saving your order to database...</h3>
                 <p className="text-[11px] text-gray-400 mt-1">Please do not refresh or close this screen</p>
               </div>
@@ -1048,49 +1011,51 @@ export const CustomerDisplay: React.FC = () => {
 
           {/* STEP 5: SUCCESS & RECEIPT */}
           {step === 'success' && (
-            <div className="space-y-6 text-center py-4">
-              <div className="flex flex-col items-center">
-                {/* Pulse Green Dot */}
-                <div className="relative">
-                  <div className="absolute inset-0 bg-green-500/20 rounded-full animate-ping scale-150"></div>
-                  <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-md relative z-10">
-                    ✓
+            <div className="flex-1 flex flex-col justify-between h-full py-4">
+              <div className="space-y-6 flex-1 flex flex-col justify-center">
+                <div className="flex flex-col items-center">
+                  {/* Pulse Green Dot */}
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-green-500/20 rounded-full animate-ping scale-150"></div>
+                    <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-md relative z-10">
+                      ✓
+                    </div>
+                  </div>
+                  <h2 className="text-xl font-extrabold text-gray-800 mt-5">Order Placed Successfully!</h2>
+                  <p className="text-xs text-gray-400 mt-1">Your order has been queued in the kitchen.</p>
+                </div>
+
+                {/* Summary invoice card */}
+                <div className="bg-gray-50 border border-gray-150 rounded-2xl p-4 max-w-sm mx-auto text-left text-xs space-y-3 font-sans w-full">
+                  <div className="flex justify-between border-b border-gray-200 pb-2">
+                    <span className="text-gray-400">Order Token</span>
+                    <span className="font-mono font-bold text-gray-800">#{createdOrderNumber}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-gray-200 pb-2">
+                    <span className="text-gray-400">Dining Style</span>
+                    <span className="font-bold text-gray-800">
+                      {diningOption === 'dine_in'
+                        ? `Dine In (Table ${selectedTable?.tableNumber || 1})`
+                        : 'Takeaway'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-b border-gray-200 pb-2">
+                    <span className="text-gray-400">Payment Status</span>
+                    <span className="font-bold text-green-600">
+                      {paymentOption === 'online' ? 'Paid Online' : 'Pay at Counter'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between font-extrabold text-sm pt-1">
+                    <span>Grand Total</span>
+                    <span className="text-odoo-teal">₹{total.toFixed(2)}</span>
                   </div>
                 </div>
-                <h2 className="text-xl font-extrabold text-gray-800 mt-5">Order Placed Successfully!</h2>
-                <p className="text-xs text-gray-400 mt-1">Your order has been queued in the kitchen.</p>
               </div>
 
-              {/* Summary invoice card */}
-              <div className="bg-gray-50 border border-gray-150 rounded-2xl p-4 max-w-sm mx-auto text-left text-xs space-y-3 font-sans">
-                <div className="flex justify-between border-b border-gray-200 pb-2">
-                  <span className="text-gray-400">Order Token</span>
-                  <span className="font-mono font-bold text-gray-800">#{createdOrderNumber}</span>
-                </div>
-                <div className="flex justify-between border-b border-gray-200 pb-2">
-                  <span className="text-gray-400">Dining Style</span>
-                  <span className="font-bold text-gray-800">
-                    {diningOption === 'dine_in'
-                      ? `Dine In (Table ${selectedTable?.tableNumber || 1})`
-                      : 'Takeaway'}
-                  </span>
-                </div>
-                <div className="flex justify-between border-b border-gray-200 pb-2">
-                  <span className="text-gray-400">Payment Status</span>
-                  <span className="font-bold text-green-600">
-                    {paymentOption === 'online' ? 'Paid Online' : 'Pay at Counter'}
-                  </span>
-                </div>
-                <div className="flex justify-between font-extrabold text-sm pt-1">
-                  <span>Grand Total</span>
-                  <span className="text-odoo-teal">₹{total.toFixed(2)}</span>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-gray-100 flex justify-center">
+              <div className="pt-4 border-t border-gray-100 flex justify-center mt-6">
                 <button
                   onClick={resetAll}
-                  className="px-6 py-2.5 bg-odoo-purple text-white rounded-xl text-xs font-bold shadow-md hover:bg-odoo-purple-hover transition-all cursor-pointer flex items-center gap-1.5"
+                  className="w-full sm:w-auto px-6 py-3 sm:py-2.5 bg-odoo-purple text-white rounded-xl text-xs font-bold shadow-md hover:bg-odoo-purple-hover transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <RefreshCw className="w-4 h-4" /> Start New Order
                 </button>
