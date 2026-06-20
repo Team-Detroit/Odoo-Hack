@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { couponService } from '../../services/couponService';
 import { promotionService } from '../../services/promotionService';
+import { orderService } from '../../services/orderService';
 import { Coupon, CreateCouponRequest } from '../../types/coupon';
 import { Promotion, CreatePromotionRequest } from '../../types/promotion';
 import { Button } from '../../components/common/Button';
@@ -144,6 +145,14 @@ export const Coupons: React.FC = () => {
   const qc = useQueryClient();
   const { data: coupons = [], isLoading: cl } = useQuery({ queryKey: ['coupons'], queryFn: couponService.mockGetAll });
   const { data: promos = [], isLoading: pl } = useQuery({ queryKey: ['promotions'], queryFn: promotionService.mockGetAll });
+  const { data: orders = [] } = useQuery({ queryKey: ['orders'], queryFn: orderService.getAll });
+
+  // Calculate dashboard stats from actual data
+  const totalActiveCoupons = coupons.filter(c => c.isActive).length;
+  const totalDiscounted = orders.reduce((sum, o) => sum + (o.discount || 0), 0);
+  const ordersWithDiscount = orders.filter(o => o.offerTag || (o.discount || 0) > 0).length;
+  const redemptionRate = orders.length > 0 ? (ordersWithDiscount / orders.length) * 100 : 0;
+
   const [tab, setTab] = useState<'coupons' | 'promotions'>('coupons');
   const [couponForm, setCouponForm] = useState(false);
   const [editCoupon, setEditCoupon] = useState<Coupon | undefined>();
@@ -359,7 +368,7 @@ export const Coupons: React.FC = () => {
           </div>
           <div>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Coupons</p>
-            <p className="text-2xl font-extrabold text-gray-800 mt-1">14 Active</p>
+            <p className="text-2xl font-extrabold text-gray-800 mt-1">{totalActiveCoupons} Active</p>
           </div>
         </div>
 
@@ -369,7 +378,7 @@ export const Coupons: React.FC = () => {
           </div>
           <div>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Redemption Rate</p>
-            <p className="text-2xl font-extrabold text-gray-800 mt-1">24.5%</p>
+            <p className="text-2xl font-extrabold text-gray-800 mt-1">{redemptionRate.toFixed(1)}%</p>
           </div>
         </div>
 
@@ -379,7 +388,7 @@ export const Coupons: React.FC = () => {
           </div>
           <div>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Discounted</p>
-            <p className="text-2xl font-extrabold text-gray-800 mt-1">₹1,240.00</p>
+            <p className="text-2xl font-extrabold text-gray-800 mt-1">₹{totalDiscounted.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
           </div>
         </div>
       </div>
