@@ -23,7 +23,8 @@ export const PosLayout: React.FC = () => {
           setSession(newSession);
         }
       } catch (e) {
-        console.error("Session auto-initialization failed:", e);
+        console.error("Session auto-initialization failed, clearing local session store:", e);
+        useSessionStore.getState().clearSession();
       }
     };
     initSession();

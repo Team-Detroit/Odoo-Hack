@@ -62,7 +62,7 @@ export class OrderRepository {
   }
 
   async updateOrder(id: string, data: UpdateOrderDto) {
-    return prisma.order.update({ 
+    const updatedOrder = await prisma.order.update({ 
       where: { id }, 
       data, 
       include: { 
@@ -71,6 +71,26 @@ export class OrderRepository {
         table: true
       } 
     });
+
+    if (data.status === 'PAID') {
+      try {
+        if (updatedOrder.tableId) {
+          await prisma.table.update({
+            where: { id: updatedOrder.tableId },
+            data: { status: 'AVAILABLE' }
+          });
+        }
+        await prisma.kitchenTicket.upsert({
+          where: { orderId: id },
+          update: { status: 'TO_COOK' },
+          create: { orderId: id, status: 'TO_COOK' }
+        });
+      } catch (err) {
+        console.error("Error updating table or kitchen ticket status on payment:", err);
+      }
+    }
+
+    return updatedOrder;
   }
 
   async deleteOrder(id: string) {
@@ -78,6 +98,16 @@ export class OrderRepository {
   }
 
   async sendToKitchen(id: string) {
+    try {
+      await prisma.kitchenTicket.upsert({
+        where: { orderId: id },
+        update: { status: 'TO_COOK' },
+        create: { orderId: id, status: 'TO_COOK' }
+      });
+    } catch (err) {
+      console.error("Error creating kitchen ticket on sendToKitchen:", err);
+    }
+
     return prisma.order.update({
       where: { id },
       data: { status: 'SENT_TO_KITCHEN' },

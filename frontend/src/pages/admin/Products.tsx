@@ -15,13 +15,13 @@ import { UNITS_OF_MEASURE } from '../../constants/unitsOfMeasure';
 const ProductFormModal: React.FC<{ open: boolean; onClose: () => void; initial?: Product }> = ({ open, onClose, initial }) => {
   const qc = useQueryClient();
   const { data: categories = [] } = useQuery({ queryKey: ['categories'], queryFn: categoryService.mockGetAll });
-  const [form, setForm] = useState<CreateProductRequest>({ name: '', categoryId: '', price: 0, unitOfMeasure: 'piece', tax: 0, description: '' });
+  const [form, setForm] = useState<CreateProductRequest>({ name: '', categoryId: '', price: 0, unitOfMeasure: 'piece', tax: 0, description: '', image: '' });
   const [newCatName, setNewCatName] = useState('');
   const [showNewCat, setShowNewCat] = useState(false);
 
   React.useEffect(() => {
-    if (initial) setForm({ name: initial.name, categoryId: initial.categoryId, price: initial.price, unitOfMeasure: initial.unitOfMeasure, tax: initial.tax, description: initial.description ?? '' });
-    else setForm({ name: '', categoryId: '', price: 0, unitOfMeasure: 'piece', tax: 0, description: '' });
+    if (initial) setForm({ name: initial.name, categoryId: initial.categoryId, price: initial.price, unitOfMeasure: initial.unitOfMeasure, tax: initial.tax, description: initial.description ?? '', image: (initial as any).image ?? initial.imageUrl ?? '' });
+    else setForm({ name: '', categoryId: '', price: 0, unitOfMeasure: 'piece', tax: 0, description: '', image: '' });
   }, [initial, open]);
 
   const createCat = useMutation({
@@ -57,6 +57,43 @@ const ProductFormModal: React.FC<{ open: boolean; onClose: () => void; initial?:
         <Select label="Unit of Measure" value={form.unitOfMeasure} onChange={e => set('unitOfMeasure', e.target.value as 'piece' | 'kg' | 'litre')}
           options={UNITS_OF_MEASURE.map(u => ({ label: u.label, value: u.value }))} />
         <Input label="Tax (%)" type="number" value={form.tax} onChange={e => set('tax', Number(e.target.value))} />
+        <div className="col-span-2 space-y-2">
+          <label className="text-xs font-bold text-gray-700">Product Image (Link or Upload)</label>
+          <div className="flex gap-4 items-end">
+            <div className="flex-1">
+              <Input 
+                placeholder="Paste Image URL Link (https://...)" 
+                value={form.image ?? ''} 
+                onChange={e => set('image', e.target.value)} 
+              />
+            </div>
+            <span className="text-xs text-gray-400 font-semibold mb-3">OR</span>
+            <label className="px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap mb-1">
+              Upload Photo
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      set('image', reader.result as string);
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+              />
+            </label>
+          </div>
+          {form.image && (
+            <div className="mt-2 flex items-center gap-3">
+              <span className="text-xs text-gray-400">Preview:</span>
+              <img src={form.image} alt="Preview" className="w-12 h-12 object-cover rounded-lg border border-gray-150" />
+            </div>
+          )}
+        </div>
         <Input label="Description" value={form.description ?? ''} onChange={e => set('description', e.target.value)} className="col-span-2" />
       </div>
       <div className="flex gap-2 justify-end mt-5">
@@ -210,7 +247,34 @@ export const Products: React.FC = () => {
         </div>
 
         {/* Export icon */}
-        <button className="ml-auto p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition-colors">
+        <button 
+          onClick={() => {
+            const headers = ['Name', 'Category', 'Price', 'UOM', 'Tax Rate', 'Description'];
+            const rows = products.map(p => [
+              p.name,
+              p.category?.name ?? '—',
+              `₹${p.price.toFixed(2)}`,
+              p.unitOfMeasure,
+              `${p.tax}%`,
+              p.description ?? ''
+            ]);
+            const csvContent = [
+              headers.join(','),
+              ...rows.map(e => e.map(val => `"${val.replace(/"/g, '""')}"`).join(','))
+            ].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'Odoo_Cafe_Menu.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }}
+          className="ml-auto p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition-colors"
+          title="Download Menu"
+        >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
           </svg>
@@ -220,8 +284,8 @@ export const Products: React.FC = () => {
       {/* ── Table ── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         {/* Table header */}
-        <div className="grid grid-cols-[2fr_1.2fr_1fr_1fr_0.8fr_0.8fr_auto] gap-4 px-6 py-3 border-b border-gray-100">
-          {['Name & Thumbnail', 'Category', 'Price', 'Cost', 'UOM', 'Tax Rate', 'Actions'].map(h => (
+        <div className="grid grid-cols-[2fr_1.2fr_1fr_0.8fr_0.8fr_auto] gap-4 px-6 py-3 border-b border-gray-100">
+          {['Name & Thumbnail', 'Category', 'Price', 'UOM', 'Tax Rate', 'Actions'].map(h => (
             <p key={h} className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{h}</p>
           ))}
         </div>
@@ -233,11 +297,10 @@ export const Products: React.FC = () => {
           <div className="py-16 text-center text-gray-300 text-sm">No products found.</div>
         ) : (
           filtered.map((p, i) => {
-            const m = margin(p);
             return (
               <div
                 key={p.id}
-                className={`grid grid-cols-[2fr_1.2fr_1fr_1fr_0.8fr_0.8fr_auto] gap-4 px-6 py-4 items-center transition-colors hover:bg-gray-50/60 ${i !== filtered.length - 1 ? 'border-b border-gray-50' : ''}`}
+                className={`grid grid-cols-[2fr_1.2fr_1fr_0.8fr_0.8fr_auto] gap-4 px-6 py-4 items-center transition-colors hover:bg-gray-50/60 ${i !== filtered.length - 1 ? 'border-b border-gray-50' : ''}`}
               >
                 {/* Name & thumbnail */}
                 <div className="flex items-center gap-3">
@@ -257,20 +320,6 @@ export const Products: React.FC = () => {
 
                 {/* Price */}
                 <span className="font-bold text-gray-900 text-sm">₹{p.price.toFixed(2)}</span>
-
-                {/* Cost + margin */}
-                <div>
-                  {p.cost != null ? (
-                    <>
-                      <p className="text-sm text-gray-700 font-medium">₹{p.cost.toFixed(2)}</p>
-                      {m !== null && (
-                        <p className="text-xs text-odoo-purple font-semibold">({m}% Margin)</p>
-                      )}
-                    </>
-                  ) : (
-                    <span className="text-gray-300 text-xs">—</span>
-                  )}
-                </div>
 
                 {/* UOM */}
                 <span className="text-sm text-gray-500 capitalize">{p.unitOfMeasure}</span>

@@ -89,7 +89,7 @@ const ProductCard: React.FC<{ product: Product; onAdd: (p: Product) => void }> =
   >
     <div className="w-full h-24 rounded-lg overflow-hidden mb-2 bg-gray-100 shrink-0 relative">
       <img 
-        src={getProductImage(product.name)} 
+        src={product.image || product.imageUrl || getProductImage(product.name)} 
         alt={product.name} 
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
       />

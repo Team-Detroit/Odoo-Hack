@@ -1,30 +1,44 @@
 import axiosInstance from '../lib/axios';
 import { Product, CreateProductRequest, UpdateProductRequest } from '../types/product';
 
+export const mapProductFromDb = (dbProduct: any): Product => {
+  if (!dbProduct) return dbProduct;
+  return {
+    ...dbProduct,
+    isActive: dbProduct.available ?? dbProduct.isActive ?? true,
+    imageUrl: dbProduct.image ?? dbProduct.imageUrl ?? '',
+  };
+};
+
 export const productService = {
   getAll: async (): Promise<Product[]> => {
     const response = await axiosInstance.get('/products');
-    return response.data.data?.products || response.data.data || [];
+    const list = response.data.data?.products || response.data.data || [];
+    return Array.isArray(list) ? list.map(mapProductFromDb) : [];
   },
 
   getById: async (id: string): Promise<Product> => {
     const response = await axiosInstance.get(`/products/${id}`);
-    return response.data.data?.products || response.data.data || [];
+    const item = response.data.data?.product || response.data.data?.products || response.data.data || response.data;
+    return mapProductFromDb(item);
   },
 
   getByCategory: async (categoryId: string): Promise<Product[]> => {
     const response = await axiosInstance.get(`/products?categoryId=${categoryId}`);
-    return response.data.data?.products || response.data.data || [];
+    const list = response.data.data?.products || response.data.data || [];
+    return Array.isArray(list) ? list.map(mapProductFromDb) : [];
   },
 
   create: async (data: CreateProductRequest): Promise<Product> => {
     const response = await axiosInstance.post('/products', data);
-    return response.data.data?.products || response.data.data || [];
+    const item = response.data.data?.product || response.data.data?.products || response.data.data || response.data;
+    return mapProductFromDb(item);
   },
 
   update: async (id: string, data: Partial<CreateProductRequest>): Promise<Product> => {
     const response = await axiosInstance.put(`/products/${id}`, data);
-    return response.data.data?.products || response.data.data || [];
+    const item = response.data.data?.product || response.data.data?.products || response.data.data || response.data;
+    return mapProductFromDb(item);
   },
 
   delete: async (id: string): Promise<void> => {
@@ -33,7 +47,8 @@ export const productService = {
 
   search: async (query: string): Promise<Product[]> => {
     const response = await axiosInstance.get(`/products/search?q=${query}`);
-    return response.data.data?.products || response.data.data || [];
+    const list = response.data.data?.products || response.data.data || [];
+    return Array.isArray(list) ? list.map(mapProductFromDb) : [];
   },
 
   mockProducts: [

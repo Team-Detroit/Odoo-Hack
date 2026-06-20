@@ -210,17 +210,8 @@ export const Floors: React.FC = () => {
     if (serverFloors.length > 0) {
       const initialTables: Record<string, Table[]> = {};
       serverFloors.forEach(f => {
-        const stored = localStorage.getItem(`odoo_cafe_tables_${f.id}`);
-        if (stored) {
-          try {
-            initialTables[f.id] = JSON.parse(stored);
-          } catch (e) {
-            initialTables[f.id] = f.tables;
-          }
-        } else {
-          initialTables[f.id] = f.tables;
-          localStorage.setItem(`odoo_cafe_tables_${f.id}`, JSON.stringify(f.tables));
-        }
+        initialTables[f.id] = f.tables;
+        localStorage.setItem(`odoo_cafe_tables_${f.id}`, JSON.stringify(f.tables));
       });
       setLocalTables(initialTables);
       if (!activeFloorId) {
@@ -416,11 +407,11 @@ export const Floors: React.FC = () => {
   if (isLoading) return <div className="flex justify-center py-16"><Spinner /></div>;
 
   // Analytics derived from current visual state
-  const allTables = Object.values(localTables).flat().filter(Boolean);
-  const activeTables = allTables.filter(t => t && t.hasActiveOrder).length;
+  const allTables = localTables[currentFloorId] || [];
+  const activeTables = allTables.filter(t => t && !t.isOutOfService).length;
   const totalSeats = allTables.reduce((s, t) => s + ((t && t.numberOfSeats) || 0), 0);
-  const filledSeats = allTables.filter(t => t && t.hasActiveOrder).reduce((s, t) => s + ((t && t.numberOfSeats) || 0), 0);
-  const occupiedPct = allTables.length ? Math.round((activeTables / allTables.length) * 100) : 0;
+  const filledSeats = allTables.filter(t => t && (t.status === 'OCCUPIED' || t.hasActiveOrder)).reduce((s, t) => s + ((t && t.numberOfSeats) || 0), 0);
+  const vacancyPct = totalSeats ? Math.round(((totalSeats - filledSeats) / totalSeats) * 100) : 100;
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] overflow-hidden">
@@ -450,7 +441,7 @@ export const Floors: React.FC = () => {
                 className={`px-3 py-1 rounded-md text-xs font-semibold transition-all whitespace-nowrap
                   ${floor.id === currentFloorId ? 'bg-white shadow text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
               >
-                {floor.name} ({currentTables.length} Tables)
+                {floor.name} ({(localTables[floor.id] || []).length} Tables)
               </button>
             ))}
             <button
@@ -463,7 +454,44 @@ export const Floors: React.FC = () => {
           </div>
 
           <Button
-            onClick={() => setEditMode(!editMode)}
+            onClick={async () => {
+              if (editMode) {
+                try {
+                  const list = localTables[currentFloorId] || [];
+                  for (const t of list) {
+                    if (t.id.startsWith('t_')) {
+                      await tableService.create({
+                        floorId: t.floorId,
+                        tableNumber: t.tableNumber,
+                        numberOfSeats: t.numberOfSeats,
+                        isOutOfService: t.isOutOfService,
+                        x: t.x,
+                        y: t.y,
+                        width: t.width,
+                        height: t.height,
+                        shape: t.shape
+                      });
+                    } else {
+                      await tableService.update(t.id, {
+                        floorId: t.floorId,
+                        tableNumber: t.tableNumber,
+                        numberOfSeats: t.numberOfSeats,
+                        isOutOfService: t.isOutOfService,
+                        x: t.x,
+                        y: t.y,
+                        width: t.width,
+                        height: t.height,
+                        shape: t.shape
+                      });
+                    }
+                  }
+                  qc.invalidateQueries({ queryKey: ['floors'] });
+                } catch (err) {
+                  console.error("Failed to save layout modifications:", err);
+                }
+              }
+              setEditMode(!editMode);
+            }}
             variant={editMode ? 'default' : 'outline'}
             size="sm"
             className="flex items-center gap-1.5 text-xs h-8"
@@ -511,8 +539,8 @@ export const Floors: React.FC = () => {
               {editMode ? 'Layout Editor Mode — Drag to move, grab handle to resize' : 'Interactive Map — Click table to view or take orders'}
             </span>
             <div className="flex gap-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-emerald-500 inline-block border border-emerald-600" /> Occupied</span>
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-[#ebdcb9] inline-block border border-amber-700" /> Vacant</span>
+              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-orange-500 inline-block border border-orange-600" /> Occupied</span>
+              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-emerald-500 inline-block border border-emerald-600" /> Vacant</span>
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-gray-300 inline-block border border-gray-400" /> OOS Closed</span>
             </div>
           </div>
@@ -572,13 +600,13 @@ export const Floors: React.FC = () => {
               const isOccupied = t.status === 'OCCUPIED' || t.hasActiveOrder;
 
               // Compute background color based on status
-              let bgClass = 'bg-[#ebdcb9] border-amber-700 hover:bg-[#eedfc4]';
-              let textClass = 'text-amber-900';
+              let bgClass = 'bg-emerald-500 border-emerald-600 hover:bg-emerald-400';
+              let textClass = 'text-white';
               if (isOos) {
                 bgClass = 'bg-gray-300 border-gray-400 opacity-60';
                 textClass = 'text-gray-500';
               } else if (isOccupied) {
-                bgClass = 'bg-emerald-500 border-emerald-600 hover:bg-emerald-400';
+                bgClass = 'bg-orange-500 border-orange-600 hover:bg-orange-400';
                 textClass = 'text-white';
               }
 
@@ -752,15 +780,15 @@ export const Floors: React.FC = () => {
                   <circle cx="18" cy="18" r="16" fill="none" stroke="#f1f5f9" strokeWidth="3.5" />
                   <circle
                     cx="18" cy="18" r="16" fill="none" stroke="#00a09d" strokeWidth="3.5"
-                    strokeDasharray={`${occupiedPct} ${100 - occupiedPct}`}
+                    strokeDasharray={`${vacancyPct} ${100 - vacancyPct}`}
                     strokeLinecap="round"
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-xs font-bold text-gray-900">{occupiedPct}%</span>
+                  <span className="text-xs font-bold text-gray-900">{vacancyPct}%</span>
                 </div>
               </div>
-              <div className="space-y-1 text-xs">
+              <div className="space-y-1.5 text-xs">
                 <div>
                   <span className="text-[10px] text-gray-400 uppercase font-medium">Active Tables</span>
                   <p className="font-bold text-gray-800">{activeTables} / {allTables.length} Active</p>
@@ -768,6 +796,10 @@ export const Floors: React.FC = () => {
                 <div>
                   <span className="text-[10px] text-gray-400 uppercase font-medium">Seats Occupied</span>
                   <p className="font-bold text-gray-800">{filledSeats} of {totalSeats}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-gray-400 uppercase font-medium">Seats Available (Vacant)</span>
+                  <p className="font-bold text-gray-800 text-teal-600">{totalSeats - filledSeats} of {totalSeats}</p>
                 </div>
               </div>
             </div>
@@ -780,7 +812,7 @@ export const Floors: React.FC = () => {
             <div className="space-y-3">
               {serverFloors.map(floor => {
                 const tables = localTables[floor.id] || [];
-                const active = tables.filter(t => t && t.hasActiveOrder).length;
+                const active = tables.filter(t => t && (t.status === 'OCCUPIED' || t.hasActiveOrder)).length;
                 const pct = tables.length ? Math.round((active / tables.length) * 100) : 0;
                 return (
                   <div key={floor.id} className="text-xs">

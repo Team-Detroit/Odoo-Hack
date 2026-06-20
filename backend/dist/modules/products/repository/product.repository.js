@@ -17,11 +17,15 @@ class ProductRepository {
                 { description: { contains: search, mode: 'insensitive' } },
             ];
         }
-        return this.prisma.product.findMany({ where });
+        return this.prisma.product.findMany({
+            where,
+            include: { category: true }
+        });
     }
     async getProductById(id) {
         return this.prisma.product.findUnique({
             where: { id },
+            include: { category: true }
         });
     }
     async createProduct(data) {

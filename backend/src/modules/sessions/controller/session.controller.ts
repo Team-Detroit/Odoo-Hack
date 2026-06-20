@@ -34,6 +34,7 @@ export class SessionController {
       const session = await this.sessionService.openSession({ userId: req.user.id });
       res.status(201).json(successResponse('Session opened successfully', session));
     } catch (error: any) {
+      console.error("Error opening session:", error);
       res.status(500).json(errorResponse('Failed to open session', error.message));
     }
   }

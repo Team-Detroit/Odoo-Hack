@@ -31,6 +31,7 @@ class SessionController {
             res.status(201).json((0, response_util_1.successResponse)('Session opened successfully', session));
         }
         catch (error) {
+            console.error("Error opening session:", error);
             res.status(500).json((0, response_util_1.errorResponse)('Failed to open session', error.message));
         }
     }

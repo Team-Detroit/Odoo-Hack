@@ -25,6 +25,7 @@ export interface CreateProductRequest {
   unitOfMeasure: UnitOfMeasure;
   tax: number;
   description?: string;
+  image?: string;
 }
 
 export interface UpdateProductRequest extends Partial<CreateProductRequest> {
