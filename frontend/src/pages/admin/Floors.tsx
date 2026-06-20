@@ -381,10 +381,10 @@ export const Floors: React.FC = () => {
   if (isLoading) return <div className="flex justify-center py-16"><Spinner /></div>;
 
   // Analytics derived from current visual state
-  const allTables = Object.values(localTables).flat();
-  const activeTables = allTables.filter(t => t.hasActiveOrder).length;
-  const totalSeats = allTables.reduce((s, t) => s + (t.numberOfSeats || 0), 0);
-  const filledSeats = allTables.filter(t => t.hasActiveOrder).reduce((s, t) => s + (t.numberOfSeats || 0), 0);
+  const allTables = Object.values(localTables).flat().filter(Boolean);
+  const activeTables = allTables.filter(t => t && t.hasActiveOrder).length;
+  const totalSeats = allTables.reduce((s, t) => s + ((t && t.numberOfSeats) || 0), 0);
+  const filledSeats = allTables.filter(t => t && t.hasActiveOrder).reduce((s, t) => s + ((t && t.numberOfSeats) || 0), 0);
   const occupiedPct = allTables.length ? Math.round((activeTables / allTables.length) * 100) : 0;
 
   return (
