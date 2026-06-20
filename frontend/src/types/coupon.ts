@@ -10,6 +10,12 @@ export interface Coupon {
   usageCount: number;
   createdAt: string;
   updatedAt: string;
+  description?: string;
+  expiryDate?: string;
+  minPurchase?: number;
+  minOrders?: number;
+  monthsActive?: number;
+  newCustomerOnly?: boolean;
 }
 
 export interface CreateCouponRequest {
@@ -17,6 +23,12 @@ export interface CreateCouponRequest {
   discountType: DiscountType;
   discountValue: number;
   maxUsageCount?: number;
+  description?: string;
+  expiryDate?: string;
+  minPurchase?: number;
+  minOrders?: number;
+  monthsActive?: number;
+  newCustomerOnly?: boolean;
 }
 
 export interface UpdateCouponRequest extends Partial<CreateCouponRequest> {

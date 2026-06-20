@@ -30,6 +30,7 @@ export interface Order {
   status: OrderStatus;
   selfOrder?: boolean;
   paymentTag?: string;
+  offerTag?: string;
   couponCode?: string;
   appliedPromotion?: string;
   notes?: string;

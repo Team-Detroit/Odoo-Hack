@@ -23,18 +23,87 @@ import {
 
 const CouponFormModal: React.FC<{ open: boolean; onClose: () => void; initial?: Coupon }> = ({ open, onClose, initial }) => {
   const qc = useQueryClient();
-  const [form, setForm] = useState<CreateCouponRequest>({ code: '', discountType: 'percentage', discountValue: 0 });
-  React.useEffect(() => { if (initial) setForm({ code: initial.code, discountType: initial.discountType, discountValue: initial.discountValue }); else setForm({ code: '', discountType: 'percentage', discountValue: 0 }); }, [initial, open]);
-  const save = useMutation({ mutationFn: () => initial ? couponService.update(initial.id, form) : couponService.create(form), onSuccess: () => { qc.invalidateQueries({ queryKey: ['coupons'] }); onClose(); } });
+  const [form, setForm] = useState<CreateCouponRequest>({
+    code: '',
+    discountType: 'percentage',
+    discountValue: 0,
+    description: '',
+    expiryDate: '',
+    minPurchase: undefined,
+    minOrders: undefined,
+    monthsActive: undefined,
+    newCustomerOnly: false
+  });
+
+  React.useEffect(() => {
+    if (initial) {
+      setForm({
+        code: initial.code,
+        discountType: initial.discountType,
+        discountValue: initial.discountValue,
+        description: initial.description || '',
+        expiryDate: initial.expiryDate ? new Date(initial.expiryDate).toISOString().split('T')[0] : '',
+        minPurchase: initial.minPurchase,
+        minOrders: initial.minOrders,
+        monthsActive: initial.monthsActive,
+        newCustomerOnly: !!initial.newCustomerOnly
+      });
+    } else {
+      setForm({
+        code: '',
+        discountType: 'percentage',
+        discountValue: 0,
+        description: '',
+        expiryDate: '',
+        minPurchase: undefined,
+        minOrders: undefined,
+        monthsActive: undefined,
+        newCustomerOnly: false
+      });
+    }
+  }, [initial, open]);
+
+  const save = useMutation({
+    mutationFn: () => initial ? couponService.update(initial.id, form) : couponService.create(form),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['coupons'] }); onClose(); }
+  });
+
   const set = (k: keyof CreateCouponRequest, v: unknown) => setForm(f => ({ ...f, [k]: v }));
+
   return (
-    <Modal open={open} onClose={onClose} title={initial ? 'Edit Coupon' : 'New Coupon'} size="sm">
-      <div className="space-y-3">
-        <Input label="Coupon Code" value={form.code} onChange={e => set('code', e.target.value.toUpperCase())} placeholder="e.g. WELCOME10" />
+    <Modal open={open} onClose={onClose} title={initial ? 'Edit Coupon' : 'New Coupon'} size="md">
+      <div className="grid grid-cols-2 gap-4">
+        <Input label="Coupon Code" value={form.code} onChange={e => set('code', e.target.value.toUpperCase())} placeholder="e.g. WELCOME10" className="col-span-2" />
+        <Input label="Description" value={form.description || ''} onChange={e => set('description', e.target.value)} placeholder="e.g. 10% off for first-time customers" className="col-span-2" />
+        
         <Select label="Discount Type" value={form.discountType} onChange={e => set('discountType', e.target.value)} options={[{ label: 'Percentage (%)', value: 'percentage' }, { label: 'Fixed (₹)', value: 'fixed' }]} />
         <Input label={`Discount Value (${form.discountType === 'percentage' ? '%' : '₹'})`} type="number" value={form.discountValue} onChange={e => set('discountValue', Number(e.target.value))} />
+        
+        <Input label="Expiry Date" type="date" value={form.expiryDate || ''} onChange={e => set('expiryDate', e.target.value)} className="col-span-2" />
+        
+        <div className="col-span-2 border-t border-gray-100 pt-3 mt-1">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Eligibility Rules (Optional)</p>
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Min Purchase Amount (₹)" type="number" value={form.minPurchase ?? ''} onChange={e => set('minPurchase', e.target.value ? Number(e.target.value) : undefined)} />
+            <Input label="Min Number Of Orders" type="number" value={form.minOrders ?? ''} onChange={e => set('minOrders', e.target.value ? Number(e.target.value) : undefined)} />
+            <Input label="Last Order Within X Months" type="number" value={form.monthsActive ?? ''} onChange={e => set('monthsActive', e.target.value ? Number(e.target.value) : undefined)} />
+            
+            <div className="flex items-center gap-2 mt-6">
+              <input
+                id="newCustomerOnly"
+                type="checkbox"
+                checked={!!form.newCustomerOnly}
+                onChange={e => set('newCustomerOnly', e.target.checked)}
+                className="w-4.5 h-4.5 text-odoo-teal focus:ring-odoo-teal border-gray-300 rounded cursor-pointer"
+              />
+              <label htmlFor="newCustomerOnly" className="text-xs font-bold text-gray-700 cursor-pointer selection:bg-transparent">
+                New Customers Only
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
-      <div className="flex gap-2 justify-end mt-4">
+      <div className="flex gap-2 justify-end mt-6 border-t border-gray-100 pt-4">
         <Button variant="outline" onClick={onClose}>Cancel</Button>
         <Button onClick={() => save.mutate()} isLoading={save.isPending}>Save</Button>
       </div>
@@ -119,6 +188,30 @@ export const Coupons: React.FC = () => {
           {r.discountType === 'percentage' ? `${r.discountValue}%` : `₹${r.discountValue.toFixed(2)}`}
         </span>
       ) 
+    },
+    { 
+      key: 'rules', 
+      header: 'ELIGIBILITY RULES', 
+      render: (r: Coupon) => {
+        const rules = [];
+        if (r.minPurchase) rules.push(`Purchase > ₹${r.minPurchase}`);
+        if (r.minOrders) rules.push(`Orders ≥ ${r.minOrders}`);
+        if (r.monthsActive) rules.push(`Active ≤ ${r.monthsActive}mo`);
+        if (r.newCustomerOnly) rules.push('New Only');
+        return (
+          <div className="flex flex-wrap gap-1 max-w-[180px]">
+            {rules.length > 0 ? (
+              rules.map(rule => (
+                <span key={rule} className="px-1.5 py-0.5 bg-purple-50 text-purple-700 text-[10px] font-bold rounded">
+                  {rule}
+                </span>
+              ))
+            ) : (
+              <span className="text-xs text-gray-400">No restrictions</span>
+            )}
+          </div>
+        );
+      } 
     },
     { 
       key: 'isActive', 

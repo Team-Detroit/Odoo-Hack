@@ -10,4 +10,5 @@ export interface CreateOrderDto {
   total: number;
   selfOrder?: boolean;
   paymentTag?: string;
+  couponCode?: string;
 }

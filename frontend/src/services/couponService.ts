@@ -11,6 +11,12 @@ const mapCoupon = (c: any): Coupon => {
     isActive: c.isActive !== undefined ? c.isActive : (c.active !== undefined ? c.active : true),
     usageCount: c.usageCount || 0,
     maxUsageCount: c.maxUsageCount || 100,
+    description: c.description || '',
+    expiryDate: c.expiryDate || '',
+    minPurchase: c.minPurchase || undefined,
+    minOrders: c.minOrders || undefined,
+    monthsActive: c.monthsActive || undefined,
+    newCustomerOnly: c.newCustomerOnly || false,
     createdAt: c.createdAt || new Date().toISOString(),
     updatedAt: c.updatedAt || new Date().toISOString(),
   };
@@ -35,6 +41,12 @@ export const couponService = {
       discountType: data.discountType || 'percentage',
       discountValue: data.discountValue,
       active: true,
+      description: data.description,
+      expiryDate: data.expiryDate || undefined,
+      minPurchase: data.minPurchase || undefined,
+      minOrders: data.minOrders || undefined,
+      monthsActive: data.monthsActive || undefined,
+      newCustomerOnly: data.newCustomerOnly || false,
     };
     const response = await axiosInstance.post('/coupons', backendData);
     const coupon = response.data.data?.coupon || response.data.data?.coupons || response.data.data || response.data;
@@ -46,6 +58,13 @@ export const couponService = {
     if (data.code !== undefined) backendData.code = data.code;
     if (data.discountType !== undefined) backendData.discountType = data.discountType;
     if (data.discountValue !== undefined) backendData.discountValue = data.discountValue;
+    if (data.description !== undefined) backendData.description = data.description;
+    if (data.expiryDate !== undefined) backendData.expiryDate = data.expiryDate || null;
+    if (data.minPurchase !== undefined) backendData.minPurchase = data.minPurchase || null;
+    if (data.minOrders !== undefined) backendData.minOrders = data.minOrders || null;
+    if (data.monthsActive !== undefined) backendData.monthsActive = data.monthsActive || null;
+    if (data.newCustomerOnly !== undefined) backendData.newCustomerOnly = data.newCustomerOnly;
+
     const response = await axiosInstance.put(`/coupons/${id}`, backendData);
     const coupon = response.data.data?.coupon || response.data.data?.coupons || response.data.data || response.data;
     return mapCoupon(coupon);

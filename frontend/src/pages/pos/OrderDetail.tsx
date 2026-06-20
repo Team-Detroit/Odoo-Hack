@@ -54,6 +54,7 @@ export const OrderDetail: React.FC = () => {
               <span className="flex items-center gap-1.5"><Monitor className="w-4 h-4 text-teal-600" /> POS Register</span>
             )],
             ['Payment Info', order.paymentTag ?? '—'],
+            ['Offer Applied', order.offerTag ?? '—'],
           ].map(([k, v]) => (
             <div key={k} className="bg-white px-4 py-3">
               <p className="text-xs text-gray-400">{k}</p>

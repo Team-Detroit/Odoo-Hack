@@ -97,6 +97,31 @@ export const CustomerDisplay: React.FC = () => {
   // Results
   const [createdOrderNumber, setCreatedOrderNumber] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [successAmount, setSuccessAmount] = useState(0);
+
+  // Coupon state
+  const [couponCodeInput, setCouponCodeInput] = useState('');
+  const [couponEmailInput, setCouponEmailInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    discountAmount: number;
+    finalAmount: number;
+  } | null>(null);
+  const [couponError, setCouponError] = useState('');
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+
+  // Synchronize email inputs
+  useEffect(() => {
+    if (custEmail) {
+      setCouponEmailInput(custEmail);
+    }
+  }, [custEmail]);
+
+  useEffect(() => {
+    if (couponEmailInput && couponEmailInput !== custEmail) {
+      setCustEmail(couponEmailInput);
+    }
+  }, [couponEmailInput]);
 
   // Fetch initial data
   const fetchData = async () => {
@@ -176,8 +201,83 @@ export const CustomerDisplay: React.FC = () => {
 
   // Calculate totals
   const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.qty, 0);
-  const tax = parseFloat((subtotal * 0.05).toFixed(2)); // 5% GST
-  const total = subtotal + tax;
+  const discount = appliedCoupon ? appliedCoupon.discountAmount : 0;
+  const tax = parseFloat((Math.max(0, subtotal - discount) * 0.05).toFixed(2)); // 5% GST
+  const total = Math.max(0, subtotal - discount + tax);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCodeInput.trim()) {
+      setCouponError('Please enter a coupon code.');
+      return;
+    }
+    if (!couponEmailInput.trim() || !couponEmailInput.includes('@')) {
+      setCouponError('Please enter a valid email address.');
+      return;
+    }
+
+    setIsApplyingCoupon(true);
+    setCouponError('');
+    try {
+      const response = await axiosInstance.post('/coupons/validate', {
+        coupon: couponCodeInput.trim().toUpperCase(),
+        customerEmail: couponEmailInput.trim(),
+        subtotal: subtotal
+      });
+
+      if (response.data.success || (response.data && response.data.discountAmount !== undefined)) {
+        const discountAmt = response.data.discountAmount;
+        const finalAmt = response.data.finalAmount;
+        setAppliedCoupon({
+          code: couponCodeInput.trim().toUpperCase(),
+          discountAmount: discountAmt,
+          finalAmount: finalAmt
+        });
+        setCouponError('');
+      } else {
+        setCouponError(response.data.message || 'Failed to validate coupon.');
+      }
+    } catch (err: any) {
+      const errMsg = err.response?.data?.message || err.response?.data?.error || 'Invalid coupon code or customer is not eligible.';
+      setCouponError(errMsg);
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCodeInput('');
+    setCouponError('');
+  };
+
+  // Re-validate coupon when subtotal changes
+  useEffect(() => {
+    if (appliedCoupon && subtotal > 0) {
+      const revalidate = async () => {
+        try {
+          const response = await axiosInstance.post('/coupons/validate', {
+            coupon: appliedCoupon.code,
+            customerEmail: couponEmailInput.trim(),
+            subtotal: subtotal
+          });
+          if (response.data.success || (response.data && response.data.discountAmount !== undefined)) {
+            setAppliedCoupon({
+              code: appliedCoupon.code,
+              discountAmount: response.data.discountAmount,
+              finalAmount: response.data.finalAmount
+            });
+          } else {
+            handleRemoveCoupon();
+          }
+        } catch {
+          handleRemoveCoupon();
+        }
+      };
+      revalidate();
+    } else if (subtotal === 0 && appliedCoupon) {
+      handleRemoveCoupon();
+    }
+  }, [subtotal]);
 
   const getCartCount = () => cart.reduce((sum, item) => sum + item.qty, 0);
 
@@ -264,9 +364,10 @@ export const CustomerDisplay: React.FC = () => {
         subtotal: orderSubtotal,
         tax: orderTax,
         total: orderTotal,
-        discount: 0,
+        discount: discount,
         selfOrder: true,
-        paymentTag: orderPaymentTag
+        paymentTag: orderPaymentTag,
+        couponCode: appliedCoupon ? appliedCoupon.code : undefined
       });
 
       const orderData = orderRes.data.data?.order || orderRes.data.data || orderRes.data;
@@ -318,6 +419,7 @@ export const CustomerDisplay: React.FC = () => {
       }
 
       // Set results
+      setSuccessAmount(total);
       setCreatedOrderNumber(orderData.orderNumber || orderData.id.slice(0, 8).toUpperCase());
       setStep('success');
       clearCart();
@@ -370,6 +472,7 @@ export const CustomerDisplay: React.FC = () => {
     setCustName('');
     setCustEmail('');
     setCustPhone('');
+    setSuccessAmount(0);
   };
 
   // Render Loader
@@ -599,6 +702,12 @@ export const CustomerDisplay: React.FC = () => {
                     <span>Subtotal</span>
                     <span>₹{subtotal.toFixed(2)}</span>
                   </div>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-emerald-600 font-bold">
+                      <span>Discount</span>
+                      <span>-₹{discount.toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span>GST (5%)</span>
                     <span>₹{tax.toFixed(2)}</span>
@@ -607,6 +716,52 @@ export const CustomerDisplay: React.FC = () => {
                     <span>Total Amount</span>
                     <span className="text-odoo-teal">₹{total.toFixed(2)}</span>
                   </div>
+                </div>
+
+                {/* Coupon input section */}
+                <div className="border-t border-gray-150 pt-4 mt-2">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Coupons & Promos</p>
+                  {!appliedCoupon ? (
+                    <div className="space-y-2">
+                      <input
+                        type="email"
+                        placeholder="Your Email Address"
+                        value={couponEmailInput}
+                        onChange={e => setCouponEmailInput(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-odoo-teal"
+                      />
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Coupon Code"
+                          value={couponCodeInput}
+                          onChange={e => setCouponCodeInput(e.target.value.toUpperCase())}
+                          className="flex-1 min-w-0 px-3 py-2 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-odoo-teal"
+                        />
+                        <button
+                          onClick={handleApplyCoupon}
+                          disabled={isApplyingCoupon}
+                          className="px-3.5 py-2 bg-odoo-teal hover:bg-odoo-teal-hover text-white text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                      {couponError && <p className="text-[10px] text-red-500 font-semibold">{couponError}</p>}
+                    </div>
+                  ) : (
+                    <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex items-center justify-between">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-emerald-800 truncate">{appliedCoupon.code}</p>
+                        <p className="text-[10px] text-emerald-600 mt-0.5">Applied successfully (-₹{appliedCoupon.discountAmount.toFixed(2)})</p>
+                      </div>
+                      <button
+                        onClick={handleRemoveCoupon}
+                        className="text-xs text-red-500 hover:text-red-700 font-bold cursor-pointer transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -693,6 +848,12 @@ export const CustomerDisplay: React.FC = () => {
                     <span>Subtotal</span>
                     <span>₹{subtotal.toFixed(2)}</span>
                   </div>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-emerald-600 font-bold">
+                      <span>Discount</span>
+                      <span>-₹{discount.toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span>GST (5%)</span>
                     <span>₹{tax.toFixed(2)}</span>
@@ -701,6 +862,52 @@ export const CustomerDisplay: React.FC = () => {
                     <span>Total Amount</span>
                     <span className="text-odoo-teal">₹{total.toFixed(2)}</span>
                   </div>
+                </div>
+
+                {/* Coupon input section */}
+                <div className="border-t border-gray-150 pt-4 mt-2">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Coupons & Promos</p>
+                  {!appliedCoupon ? (
+                    <div className="space-y-2">
+                      <input
+                        type="email"
+                        placeholder="Your Email Address"
+                        value={couponEmailInput}
+                        onChange={e => setCouponEmailInput(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-odoo-teal"
+                      />
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Coupon Code"
+                          value={couponCodeInput}
+                          onChange={e => setCouponCodeInput(e.target.value.toUpperCase())}
+                          className="flex-1 min-w-0 px-3 py-2 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-odoo-teal"
+                        />
+                        <button
+                          onClick={handleApplyCoupon}
+                          disabled={isApplyingCoupon}
+                          className="px-3.5 py-2 bg-odoo-teal hover:bg-odoo-teal-hover text-white text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                      {couponError && <p className="text-[10px] text-red-500 font-semibold">{couponError}</p>}
+                    </div>
+                  ) : (
+                    <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex items-center justify-between">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-emerald-800 truncate">{appliedCoupon.code}</p>
+                        <p className="text-[10px] text-emerald-600 mt-0.5">Applied successfully (-₹{appliedCoupon.discountAmount.toFixed(2)})</p>
+                      </div>
+                      <button
+                        onClick={handleRemoveCoupon}
+                        className="text-xs text-red-500 hover:text-red-700 font-bold cursor-pointer transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => {
@@ -977,6 +1184,65 @@ export const CustomerDisplay: React.FC = () => {
                 <p className="text-xs text-gray-400 mt-1">Secure transactional gateway</p>
               </div>
 
+              {/* Coupon Section (Specific to Online Payment) */}
+              <div className="border border-purple-100 rounded-2xl p-4 bg-purple-50/20 max-w-sm mx-auto space-y-3 shadow-xs">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-odoo-purple uppercase tracking-wider">
+                  <Percent className="w-4 h-4" /> Apply Coupon for Discount
+                </div>
+                {!appliedCoupon ? (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="COUPON CODE"
+                        value={couponCodeInput}
+                        onChange={e => setCouponCodeInput(e.target.value.toUpperCase())}
+                        className="flex-1 min-w-0 px-3 py-2 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-odoo-teal uppercase font-bold"
+                      />
+                      <button
+                        onClick={handleApplyCoupon}
+                        disabled={isApplyingCoupon}
+                        className="px-4 py-2 bg-odoo-teal hover:bg-odoo-teal-hover text-white text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                    {couponError && <p className="text-[10px] text-red-500 font-semibold">{couponError}</p>}
+                  </div>
+                ) : (
+                  <div className="bg-emerald-50 border border-emerald-250 rounded-xl p-3 flex items-center justify-between">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-emerald-800 truncate">Code: {appliedCoupon.code}</p>
+                      <p className="text-[10px] text-emerald-600 mt-0.5">Discount Applied: -₹{appliedCoupon.discountAmount.toFixed(2)}</p>
+                    </div>
+                    <button
+                      onClick={handleRemoveCoupon}
+                      className="text-xs text-red-500 hover:text-red-700 font-bold cursor-pointer transition-colors"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+
+                {/* Updated total display within payment flow */}
+                <div className="pt-2 border-t border-dashed border-gray-200 text-xs font-semibold text-gray-600 space-y-1">
+                  <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span>₹{subtotal.toFixed(2)}</span>
+                  </div>
+                  {appliedCoupon && (
+                    <div className="flex justify-between text-emerald-600 font-bold">
+                      <span>Discount:</span>
+                      <span>-₹{appliedCoupon.discountAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold text-gray-800">
+                    <span>Payable Total:</span>
+                    <span className="text-odoo-teal font-extrabold">₹{total.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Tab Selector: UPI vs CARD */}
               <div className="flex border border-gray-200 rounded-xl overflow-hidden p-0.5 max-w-sm mx-auto bg-gray-50">
                 <button
@@ -1148,7 +1414,7 @@ export const CustomerDisplay: React.FC = () => {
                 </div>
                 <div className="flex justify-between font-extrabold text-sm pt-1">
                   <span>Grand Total</span>
-                  <span className="text-odoo-teal">₹{total.toFixed(2)}</span>
+                  <span className="text-odoo-teal">₹{successAmount.toFixed(2)}</span>
                 </div>
               </div>
 

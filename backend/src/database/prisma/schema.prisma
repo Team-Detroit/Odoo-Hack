@@ -228,6 +228,8 @@ model Order {
 
   paymentTag String?
 
+  offerTag String?
+
   items OrderItem[]
 
   payment Payment?
@@ -285,6 +287,34 @@ model Coupon {
   discountValue Float
 
   active Boolean @default(true)
+
+  description String?
+
+  expiryDate DateTime?
+
+  minPurchase Float?
+
+  minOrders Int?
+
+  monthsActive Int?
+
+  newCustomerOnly Boolean @default(false)
+
+  usageCount Int @default(0)
+
+  maxUsageCount Int @default(100)
+}
+
+model CouponRedemption {
+  id String @id @default(uuid())
+
+  couponId String
+
+  customerId String
+
+  orderId String?
+
+  usedAt DateTime @default(now())
 }
 
 model Promotion {

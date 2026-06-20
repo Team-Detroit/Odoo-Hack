@@ -59,6 +59,11 @@ export const Orders: React.FC = () => {
                             {o.paymentTag}
                           </span>
                         )}
+                        {o.offerTag && (
+                          <span className="px-1.5 py-0.5 bg-rose-100 text-rose-800 rounded text-[9px] font-bold uppercase tracking-wider">
+                            Offer: {o.offerTag}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </td>
