@@ -42,11 +42,13 @@ graph TD
         C["KITCHEN"]
     end
 
-    A -->|"Full access: users, products, reports, floors"| SysA["Admin Dashboard<br/>Manage staff<br/>Manage menu<br/>View reports<br/>Configure floors"]
+    A -->|"Full access"| SysA["Admin Dashboard"]
+    B -->|"Operational access"| SysB["POS Terminal"]
+    C -->|"Read-only"| SysC["Kitchen Display"]
 
-    B -->|"Operational access: orders, tables, payments"| SysB["POS Terminal<br/>Seat customers<br/>Take and modify orders<br/>Process payments<br/>Manage tables"]
-
-    C -->|"Read-only: kitchen tickets"| SysC["KDS Screen<br/>View incoming tickets<br/>Update prep status<br/>Mark orders ready"]
+    SysA --- AA["Manage staff, menu, reports, floors"]
+    SysB --- BB["Orders, tables, payments"]
+    SysC --- CC["View & update kitchen tickets"]
 ```
 
 ### Role Permissions Matrix
@@ -71,14 +73,14 @@ graph TD
 
 ```mermaid
 flowchart TD
-    Start([System Start]) --> Login["Login<br/>JWT Auth"]
+    Start([System Start]) --> Login["Login via JWT"]
     Login --> RoleCheck{Role?}
 
     RoleCheck -->|ADMIN| AdminDash["Admin Dashboard"]
     RoleCheck -->|EMPLOYEE| POS["POS Terminal"]
     RoleCheck -->|KITCHEN| KDS["Kitchen Display"]
 
-    AdminDash --> AdminOps["Manage Menu<br/>Manage Staff<br/>View Reports<br/>Configure Floors"]
+    AdminDash --> AdminOps["Manage menu, staff, reports, floors"]
 
     POS --> OpenSession["Open Session"]
     OpenSession --> TableSelect["Select Table"]
@@ -87,12 +89,12 @@ flowchart TD
     AddItems --> SendKitchen["Send to Kitchen"]
 
     SendKitchen -->|Socket.IO| KDS
-    KDS --> KitchenUpdate["Update Status<br/>TO_COOK to PREPARING to COMPLETED"]
+    KDS --> KitchenUpdate["Update status: TO_COOK → PREPARING → COMPLETED"]
 
-    KitchenUpdate -->|Socket.IO notification| POS
-    POS --> Payment["Process Payment<br/>Cash/Card/UPI"]
+    KitchenUpdate -->|Socket.IO| POS
+    POS --> Payment["Process Payment (Cash/Card/UPI)"]
     Payment --> CloseOrder["Order PAID"]
-    CloseOrder --> TableFree["Table to AVAILABLE"]
+    CloseOrder --> TableFree["Table → AVAILABLE"]
 
     QR["QR Code Scan"] -->|Customer self-orders| SelfOrder["Self-Ordering Portal"]
     SelfOrder --> OrderCreate
@@ -109,25 +111,23 @@ sequenceDiagram
     participant W as Waiter
     participant POS as POS Terminal
     participant DB as Database
-    participant K as Kitchen (KDS)
+    participant K as Kitchen KDS
     participant C as Customer
 
     C->>W: Customer arrives
     W->>POS: Select available table
     POS->>DB: Update table to OCCUPIED
-    W->>POS: Create new order
-    W->>POS: Add menu items
+    W->>POS: Create new order & add items
     W->>POS: Send to kitchen
-    POS->>DB: Create Order (DRAFT to SENT_TO_KITCHEN)
-    POS->>K: Socket.IO: new kitchen ticket
+    POS->>DB: Order DRAFT to SENT_TO_KITCHEN
+    POS->>K: Socket.IO new kitchen ticket
     K->>K: View ticket, start preparing
-    K->>POS: Socket.IO: status to PREPARING
-    K->>POS: Socket.IO: status to COMPLETED
+    K->>POS: Socket.IO status to PREPARING
+    K->>POS: Socket.IO status to COMPLETED
     W->>C: Deliver food
     C->>W: Request bill
     W->>POS: Process payment
-    POS->>DB: Create Payment record
-    POS->>DB: Order to PAID, Table to AVAILABLE
+    POS->>DB: Order PAID, Table AVAILABLE
 ```
 
 ### Journey 2: Self-Ordering (QR)
@@ -144,8 +144,8 @@ sequenceDiagram
     POS->>QR: Show menu
     C->>QR: Browse and add items
     C->>QR: Place order
-    QR->>POS: Create order (linked to table)
-    POS->>K: Kitchen ticket created
+    QR->>POS: Create order linked to table
+    POS->>K: Kitchen ticket created via Socket.IO
     K->>K: Prepare order
     K->>POS: Mark completed
     POS->>QR: Notify customer
@@ -157,7 +157,7 @@ sequenceDiagram
 
 ```mermaid
 graph LR
-    subgraph Frontend["Frontend (React + Vite)"]
+    subgraph FE["Frontend (React + Vite)"]
         Auth["Auth Pages"]
         Admin["Admin Panel"]
         POS["POS Terminal"]
@@ -165,19 +165,19 @@ graph LR
         Self["Self-Order Portal"]
     end
 
-    subgraph Backend["Backend (Node.js + Express)"]
-        API["REST API<br/>/api/*"]
-        Socket["Socket.IO<br/>Real-Time"]
+    subgraph BE["Backend (Node.js + Express)"]
+        API["REST API /api/*"]
+        Socket["Socket.IO Real-Time"]
         Auth2["JWT Middleware"]
     end
 
-    subgraph Data["Data Layer"]
+    subgraph DB["Data Layer"]
         Prisma["Prisma ORM"]
         PG["PostgreSQL"]
     end
 
-    Frontend <-->|HTTP/HTTPS| API
-    Frontend <-->|WebSocket| Socket
+    FE <-->|HTTP/HTTPS| API
+    FE <-->|WebSocket| Socket
     API --> Auth2
     API --> Prisma
     Socket --> Prisma
