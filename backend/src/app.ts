@@ -20,6 +20,7 @@ import kdsRoutes from './modules/kds/routes/kds.routes';
 import selfOrderRoutes from './modules/selfOrder/routes/selfOrder.routes';
 import reportsRoutes from './modules/reports/routes/reports.routes';
 import userRoutes from './modules/users';
+import razorpayRoutes from './modules/razorpay/razorpay.routes';
 const app = express();
 
 app.use(cors());
@@ -45,6 +46,7 @@ app.use('/api', kdsRoutes);
 app.use('/api', selfOrderRoutes);
 app.use('/api', reportsRoutes);
 app.use('/api', userRoutes);
+app.use('/api', razorpayRoutes);
 
 app.get("/", (_, res) => {
   res.json({

@@ -33,7 +33,9 @@ export const TableView: React.FC = () => {
           <div key={floor.id}>
             <h3 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">{floor.name}</h3>
             <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-3">
-              {Array.isArray(floor.tables) && floor.tables.map(t => {
+              {Array.isArray(floor.tables) && [...floor.tables]
+                .sort((a, b) => a.tableNumber - b.tableNumber)
+                .map(t => {
                 const isOccupied = t.status === 'OCCUPIED' || t.hasActiveOrder ||
                   (selectedTable?.id === t.id) || (sessionTableId === t.id);
                 return (

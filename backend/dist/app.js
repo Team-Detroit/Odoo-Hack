@@ -24,6 +24,7 @@ const kds_routes_1 = __importDefault(require("./modules/kds/routes/kds.routes"))
 const selfOrder_routes_1 = __importDefault(require("./modules/selfOrder/routes/selfOrder.routes"));
 const reports_routes_1 = __importDefault(require("./modules/reports/routes/reports.routes"));
 const users_1 = __importDefault(require("./modules/users"));
+const razorpay_routes_1 = __importDefault(require("./modules/razorpay/razorpay.routes"));
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
 app.use((0, helmet_1.default)());
@@ -47,6 +48,7 @@ app.use('/api', kds_routes_1.default);
 app.use('/api', selfOrder_routes_1.default);
 app.use('/api', reports_routes_1.default);
 app.use('/api', users_1.default);
+app.use('/api', razorpay_routes_1.default);
 app.get("/", (_, res) => {
     res.json({
         success: true,

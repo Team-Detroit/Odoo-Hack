@@ -28,8 +28,16 @@ import {
   AlertTriangle,
   Search,
   Utensils,
-  Banknote
+  Banknote,
+  Loader2
 } from 'lucide-react';
+import razorpayService from '../../services/razorpayService';
+
+declare global {
+  interface Window {
+    Razorpay: new (options: Record<string, unknown>) => { open(): void };
+  }
+}
 
 interface CartItem {
   product: Product;
@@ -152,7 +160,7 @@ export const CustomerDisplay: React.FC = () => {
         if (!found) {
           const cleanNum = tableParam.replace(/\D/g, '');
           if (cleanNum) {
-            found = tbls.find((t: Table) => String(t.tableNumber ?? t.number) === cleanNum);
+            found = tbls.find((t: Table) => String(t.tableNumber) === cleanNum);
           }
         }
         if (found) {
@@ -326,107 +334,164 @@ export const CustomerDisplay: React.FC = () => {
         tblId = tables.length > 0 ? tables[0].id : undefined;
       }
 
-      if (!activeSession?.id) {
+      const activeSessId = activeSession?.id;
+      if (!activeSessId) {
         throw new Error('No active POS session found. Please open a session in the POS console first.');
       }
       if (!tblId) {
         throw new Error('No restaurant tables found in the database. Please seed or add tables first.');
       }
 
-      // 0. Register/create customer in DB if details provided
-      let customerId: string | undefined = undefined;
-      if (custName.trim()) {
-        try {
-          const customerRes = await axiosInstance.post('/customers', {
-            name: custName.trim(),
-            email: custEmail.trim() || undefined,
-            phone: custPhone.trim() || undefined
-          });
-          const customerData = customerRes.data.data?.customer || customerRes.data.data || customerRes.data;
-          if (customerData?.id) {
-            customerId = customerData.id;
-          }
-        } catch (err) {
-          console.error('Failed to create customer on backend, proceeding without customer linkage:', err);
-        }
-      }
-
       const isOnlinePay = paymentOption === 'online';
-      const orderPaymentTag = isOnlinePay 
-        ? (paymentSubMethod === 'upi' ? 'UPI Paid' : 'Card Paid') 
-        : 'Pending (Counter)';
 
-      // 1. Create order record
-      const orderRes = await axiosInstance.post('/orders', {
-        sessionId: activeSession.id,
-        tableId: tblId,
-        customerId: customerId,
-        subtotal: orderSubtotal,
-        tax: orderTax,
-        total: orderTotal,
-        discount: discount,
-        selfOrder: true,
-        paymentTag: orderPaymentTag,
-        couponCode: appliedCoupon ? appliedCoupon.code : undefined
-      });
+      const saveOrderToDatabase = async () => {
+        // 0. Register/create customer in DB if details provided
+        let customerId: string | undefined = undefined;
+        if (custName.trim()) {
+          try {
+            const customerRes = await axiosInstance.post('/customers', {
+              name: custName.trim(),
+              email: custEmail.trim() || undefined,
+              phone: custPhone.trim() || undefined
+            });
+            const customerData = customerRes.data.data?.customer || customerRes.data.data || customerRes.data;
+            if (customerData?.id) {
+              customerId = customerData.id;
+            }
+          } catch (err) {
+            console.error('Failed to create customer on backend, proceeding without customer linkage:', err);
+          }
+        }
 
-      const orderData = orderRes.data.data?.order || orderRes.data.data || orderRes.data;
-      if (!orderData?.id) {
-        throw new Error('Order creation failed on backend server.');
-      }
+        const orderPaymentTag = isOnlinePay 
+          ? (paymentSubMethod === 'upi' ? 'UPI Paid' : 'Card Paid') 
+          : 'Pending (Counter)';
 
-      // 2. Add Order Items
-      for (const item of cart) {
-        await axiosInstance.post('/order-items', {
-          orderId: orderData.id,
-          productId: item.product.id,
-          quantity: item.qty,
-          price: item.product.price
+        // 1. Create order record
+        const orderRes = await axiosInstance.post('/orders', {
+          sessionId: activeSessId,
+          tableId: tblId,
+          customerId: customerId,
+          subtotal: orderSubtotal,
+          tax: orderTax,
+          total: orderTotal,
+          discount: discount,
+          selfOrder: true,
+          paymentTag: orderPaymentTag,
+          couponCode: appliedCoupon ? appliedCoupon.code : undefined
         });
-      }
 
-      // 3. Create payment record
-      const payMethod = paymentOption === 'online' 
-        ? (paymentSubMethod === 'upi' ? 'UPI' : 'CARD') 
-        : 'CASH';
+        const orderData = orderRes.data.data?.order || orderRes.data.data || orderRes.data;
+        if (!orderData?.id) {
+          throw new Error('Order creation failed on backend server.');
+        }
 
-      const paymentRes = await axiosInstance.post('/payments', {
-        orderId: orderData.id,
-        method: payMethod,
-        amount: orderTotal
-      });
+        // 2. Add Order Items
+        for (const item of cart) {
+          await axiosInstance.post('/order-items', {
+            orderId: orderData.id,
+            productId: item.product.id,
+            quantity: item.qty,
+            price: item.product.price
+          });
+        }
 
-      const paymentData = paymentRes.data.data?.payment || paymentRes.data;
+        // 3. Create payment record
+        const payMethod = isOnlinePay 
+          ? (paymentSubMethod === 'upi' ? 'UPI' : 'CARD') 
+          : 'CASH';
 
-      // 4. Update statuses if paid online
-      if (paymentOption === 'online' && paymentData?.id) {
-        // Mark payment as PAID
-        await axiosInstance.patch(`/payments/${paymentData.id}/status`, {
-          status: 'PAID'
-        }).catch(err => console.error('Failed to update payment status', err));
+        const paymentRes = await axiosInstance.post('/payments', {
+          orderId: orderData.id,
+          method: payMethod,
+          amount: orderTotal
+        });
 
-        // Mark order as PAID
-        await axiosInstance.put(`/orders/${orderData.id}`, {
-          status: 'PAID',
-          paymentTag: orderPaymentTag
-        }).catch(err => console.error('Failed to update order status', err));
+        const paymentData = paymentRes.data.data?.payment || paymentRes.data;
+
+        // 4. Update statuses if paid online
+        if (isOnlinePay && paymentData?.id) {
+          // Mark payment as PAID
+          await axiosInstance.patch(`/payments/${paymentData.id}/status`, {
+            status: 'PAID'
+          }).catch(err => console.error('Failed to update payment status', err));
+
+          // Mark order as PAID
+          await axiosInstance.put(`/orders/${orderData.id}`, {
+            status: 'PAID',
+            paymentTag: orderPaymentTag
+          }).catch(err => console.error('Failed to update order status', err));
+        } else {
+          // Cash at counter - set order to SENT_TO_KITCHEN so it shows on kitchen display/POS
+          await axiosInstance.put(`/orders/${orderData.id}`, {
+            status: 'SENT_TO_KITCHEN',
+            paymentTag: orderPaymentTag
+          }).catch(err => console.error('Failed to set order to kitchen status', err));
+        }
+
+        // Set results
+        setSuccessAmount(orderTotal);
+        setCreatedOrderNumber(orderData.orderNumber || orderData.id.slice(0, 8).toUpperCase());
+        setStep('success');
+        clearCart();
+      };
+
+      if (isOnlinePay) {
+        // 1. Create Razorpay order on backend
+        const { order: rzpOrder, key: rzpKey } = await razorpayService.createOrder(orderTotal);
+
+        // 2. Open Razorpay popup
+        const options = {
+          key: rzpKey,
+          amount: rzpOrder.amount,
+          currency: rzpOrder.currency,
+          name: 'Odoo Cafe',
+          description: `Kiosk Self-Order Payment`,
+          order_id: rzpOrder.id,
+          prefill: {
+            name: custName,
+            email: custEmail || undefined,
+            contact: custPhone || undefined,
+            method: paymentSubMethod === 'card' ? 'card' : 'upi'
+          },
+          theme: { color: '#7c3aed' },
+          handler: async (response: {
+            razorpay_order_id: string;
+            razorpay_payment_id: string;
+            razorpay_signature: string;
+          }) => {
+            try {
+              setStep('processing');
+              await razorpayService.verifyPayment({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+              await saveOrderToDatabase();
+            } catch (err: any) {
+              setStep('payment_details');
+              setErrorMsg('Payment verification failed. Please try again.');
+            }
+          },
+          modal: {
+            ondismiss: () => {
+              setStep('payment_details');
+              setErrorMsg('Payment was cancelled.');
+            },
+          },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
       } else {
-        // Cash at counter - set order to SENT_TO_KITCHEN so it shows on kitchen display/POS
-        await axiosInstance.put(`/orders/${orderData.id}`, {
-          status: 'SENT_TO_KITCHEN',
-          paymentTag: orderPaymentTag
-        }).catch(err => console.error('Failed to set order to kitchen status', err));
+        // Cash at counter flow
+        await saveOrderToDatabase();
       }
 
-      // Set results
-      setSuccessAmount(total);
-      setCreatedOrderNumber(orderData.orderNumber || orderData.id.slice(0, 8).toUpperCase());
-      setStep('success');
-      clearCart();
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message || 'An error occurred during order submission.');
-      setStep('menu');
+      setStep('payment_details');
     }
   };
 
@@ -474,16 +539,6 @@ export const CustomerDisplay: React.FC = () => {
     setCustPhone('');
     setSuccessAmount(0);
   };
-
-  // Render Loader
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-        <div className="w-12 h-12 border-4 border-odoo-teal border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-4 text-gray-500 font-semibold">Loading menu items from DB...</p>
-      </div>
-    );
-  }
 
   // Render Menu View
   if (step === 'menu') {
@@ -929,7 +984,7 @@ export const CustomerDisplay: React.FC = () => {
             <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
             <div>
               <h4 className="text-xs font-bold text-red-800">Checkout Error</h4>
-              <p className="text-xs text-red-600 mt-0.5 leading-relaxed">{errorMsg}</p>
+              <p className="text-xs text-red-650 mt-0.5 leading-relaxed">{errorMsg}</p>
             </div>
             <button onClick={() => setErrorMsg('')} className="text-red-400 hover:text-red-600 p-0.5 ml-auto">
               <X className="w-4 h-4" />

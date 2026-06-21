@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { productService } from '../../services/productService';
@@ -28,7 +28,8 @@ import {
   Send, 
   Check, 
   QrCode,
-  UtensilsCrossed
+  UtensilsCrossed,
+  Loader2
 } from 'lucide-react';
 
 // Food images mapping based on product name/category
@@ -93,7 +94,7 @@ const ProductCard: React.FC<{ product: Product; onAdd: (p: Product) => void }> =
   >
     <div className="w-full h-24 rounded-lg overflow-hidden mb-2 bg-gray-100 shrink-0 relative">
       <img 
-        src={product.image || product.imageUrl || getProductImage(product.name)} 
+        src={product.imageUrl || getProductImage(product.name)} 
         alt={product.name} 
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
       />
@@ -144,10 +145,16 @@ const CartItemRow: React.FC<{ productId: string }> = ({ productId }) => {
 };
 
 // ── Payment Modal ──────────────────────────────────────────────────────────
-const PaymentModal: React.FC<{ open: boolean; onClose: () => void; total: number; onPaid: (method: 'cash' | 'card' | 'upi') => void }> = ({ open, onClose, total, onPaid }) => {
+const PaymentModal: React.FC<{
+  open: boolean;
+  onClose: () => void;
+  total: number;
+  onPaid: (method: 'cash' | 'card' | 'upi') => void;
+}> = ({ open, onClose, total, onPaid }) => {
   const [method, setMethod] = useState<'cash' | 'card' | 'upi'>('cash');
   const [cash, setCash] = useState('');
   const change = Number(cash) - total;
+
   return (
     <Modal open={open} onClose={onClose} title="Payment Methods" size="md">
       <div className="space-y-4">
@@ -174,6 +181,8 @@ const PaymentModal: React.FC<{ open: boolean; onClose: () => void; total: number
           <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Total Amount Due</p>
           <p className="text-3xl font-extrabold text-odoo-purple mt-1">₹{total.toFixed(2)}</p>
         </div>
+
+        {/* Cash method — unchanged */}
         {method === 'cash' && (
           <div className="space-y-2">
             <Input label="Cash Received (₹)" type="number" value={cash} onChange={e => setCash(e.target.value)} placeholder="0.00" />
@@ -185,17 +194,31 @@ const PaymentModal: React.FC<{ open: boolean; onClose: () => void; total: number
             )}
           </div>
         )}
-        {method === 'card' && <Input label="Transaction Reference" placeholder="Enter reference number" />}
-        {method === 'upi' && (
-          <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-200">
-            <div className="w-36 h-36 bg-white border border-gray-200 rounded-lg mx-auto flex items-center justify-center text-gray-400">
-              <QrCode className="w-24 h-24 text-gray-600" />
-            </div>
-            <p className="text-xs text-gray-500 font-semibold mt-3">Scan QR code using UPI App to pay ₹{total.toFixed(2)}</p>
+
+        {/* Card */}
+        {method === 'card' && (
+          <div className="p-4 bg-blue-50 border border-blue-105 rounded-xl text-center space-y-1">
+            <CreditCard className="w-8 h-8 mx-auto text-blue-500 mb-1" />
+            <p className="text-sm font-semibold text-blue-700">Card Payment</p>
+            <p className="text-xs text-gray-500">Collect card payment at the terminal.</p>
           </div>
         )}
-        <Button className="w-full" size="lg" onClick={() => onPaid(method)}>
-          <Check className="w-4 h-4" /> Confirm Payment
+
+        {/* UPI */}
+        {method === 'upi' && (
+          <div className="p-4 bg-violet-50 border border-violet-150 rounded-xl text-center space-y-1">
+            <Smartphone className="w-8 h-8 mx-auto text-violet-500 mb-1" />
+            <p className="text-sm font-semibold text-violet-700">UPI Payment</p>
+            <p className="text-xs text-gray-500">Scan merchant QR code at the counter.</p>
+          </div>
+        )}
+
+        <Button
+          className="w-full"
+          size="lg"
+          onClick={() => onPaid(method)}
+        >
+          <Check className="w-4 h-4" /> Confirm {method === 'cash' ? 'Cash' : method === 'card' ? 'Card' : 'UPI'} Payment
         </Button>
       </div>
     </Modal>
@@ -532,7 +555,9 @@ export const OrderView: React.FC = () => {
               <div key={floor.id} className="space-y-2">
                 <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">{floor.name}</h4>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                  {floor.tables?.map((table: Table) => {
+                  {[...(floor.tables ?? [])]
+                    .sort((a: Table, b: Table) => a.tableNumber - b.tableNumber)
+                    .map((table: Table) => {
                     const isOccupied = table.status === 'OCCUPIED' || table.hasActiveOrder;
                     return (
                       <button

@@ -20,6 +20,15 @@ exports.io = new socket_io_1.Server(server, {
 (0, socket_1.setSocketServer)(exports.io);
 exports.io.on("connection", (socket) => {
     console.log(`Socket Connected ${socket.id}`);
+    socket.on("payment:request", (data) => {
+        socket.broadcast.emit("payment:request", data);
+    });
+    socket.on("payment:response", (data) => {
+        socket.broadcast.emit("payment:response", data);
+    });
+    socket.on("payment:cancel", (data) => {
+        socket.broadcast.emit("payment:cancel", data);
+    });
     socket.on("disconnect", () => {
         console.log(`Socket Disconnected ${socket.id}`);
     });
