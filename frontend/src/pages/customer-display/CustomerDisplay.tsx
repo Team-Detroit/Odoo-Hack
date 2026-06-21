@@ -32,6 +32,9 @@ import {
   Loader2
 } from 'lucide-react';
 import razorpayService from '../../services/razorpayService';
+import { useAIConcierge } from './components/useAIConcierge';
+import { AIConciergeButton } from './components/AIConciergeButton';
+import { AIConciergePanel } from './components/AIConciergePanel';
 
 declare global {
   interface Window {
@@ -68,6 +71,11 @@ const getProductImage = (name: string): string => {
 
 export const CustomerDisplay: React.FC = () => {
   const [isSelfOrderingEnabled, setIsSelfOrderingEnabled] = useState(true);
+
+  // AI Concierge Chatbot states
+  const [isConciergeOpen, setIsConciergeOpen] = useState(false);
+  const [isConciergeMinimized, setIsConciergeMinimized] = useState(false);
+  const [showConciergeIndicator, setShowConciergeIndicator] = useState(true);
 
   // DB States
   const [products, setProducts] = useState<Product[]>([]);
@@ -117,6 +125,16 @@ export const CustomerDisplay: React.FC = () => {
   } | null>(null);
   const [couponError, setCouponError] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+
+  const concierge = useAIConcierge({
+    table: selectedTable,
+    products,
+    categories,
+    cart,
+    appliedCoupon,
+    step,
+    orderNumber: createdOrderNumber,
+  });
 
   // Synchronize email inputs
   useEffect(() => {
@@ -991,6 +1009,35 @@ export const CustomerDisplay: React.FC = () => {
             </button>
           </div>
         )}
+
+        {/* AI Concierge Chatbot */}
+        <AIConciergeButton
+          onClick={() => {
+            setIsConciergeOpen(!isConciergeOpen);
+            setIsConciergeMinimized(false);
+            setShowConciergeIndicator(false);
+          }}
+          isOpen={isConciergeOpen && !isConciergeMinimized}
+          showIndicator={showConciergeIndicator}
+        />
+
+        {isConciergeOpen && !isConciergeMinimized && (
+          <AIConciergePanel
+            messages={concierge.messages}
+            isTyping={concierge.isTyping}
+            onSendMessage={concierge.sendMessage}
+            onClearChat={concierge.clearChat}
+            onClose={() => {
+              setIsConciergeOpen(false);
+              setIsConciergeMinimized(false);
+            }}
+            onMinimize={() => setIsConciergeMinimized(true)}
+            onSpeak={concierge.triggerTextToSpeech}
+            products={products}
+            categories={categories}
+            addToCart={addToCart}
+          />
+        )}
       </div>
     );
   }
@@ -1485,6 +1532,35 @@ export const CustomerDisplay: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* AI Concierge Chatbot */}
+      <AIConciergeButton
+        onClick={() => {
+          setIsConciergeOpen(!isConciergeOpen);
+          setIsConciergeMinimized(false);
+          setShowConciergeIndicator(false);
+        }}
+        isOpen={isConciergeOpen && !isConciergeMinimized}
+        showIndicator={showConciergeIndicator}
+      />
+
+      {isConciergeOpen && !isConciergeMinimized && (
+        <AIConciergePanel
+          messages={concierge.messages}
+          isTyping={concierge.isTyping}
+          onSendMessage={concierge.sendMessage}
+          onClearChat={concierge.clearChat}
+          onClose={() => {
+            setIsConciergeOpen(false);
+            setIsConciergeMinimized(false);
+          }}
+          onMinimize={() => setIsConciergeMinimized(true)}
+          onSpeak={concierge.triggerTextToSpeech}
+          products={products}
+          categories={categories}
+          addToCart={addToCart}
+        />
+      )}
     </div>
   );
 };
