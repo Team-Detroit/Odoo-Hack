@@ -65,7 +65,7 @@ export const useAIConcierge = (context: ConciergeContext) => {
   const compileSystemPrompt = (): string => {
     const tableText = context.table ? `Table T${context.table.tableNumber}` : 'Takeaway';
     const productsText = context.products
-      .map(p => `- ${p.name} (${p.categoryName || 'Menu Item'}): ₹${p.price}. Description: ${p.description || 'Tasty item'}`)
+      .map(p => `- ${p.name} (${p.category?.name || 'Menu Item'}): ₹${p.price}. Description: ${p.description || 'Tasty item'}`)
       .join('\n');
     const categoriesText = context.categories.map(c => c.name).join(', ');
     

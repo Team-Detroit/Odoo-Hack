@@ -488,7 +488,7 @@ export const AIConciergePanel: React.FC<AIConciergePanelProps> = ({
                           </div>
                           <div className="flex justify-between items-center mt-1">
                             <span className="text-[8px] font-extrabold uppercase bg-gray-100 text-gray-500 px-1 py-0.5 rounded border border-gray-250">
-                              {prod.categoryName || 'Menu Item'}
+                              {prod.category?.name || 'Menu Item'}
                             </span>
                             <span className="text-[9px] font-black text-[#00A09D] group-hover:underline flex items-center gap-0.5">
                               Add +
