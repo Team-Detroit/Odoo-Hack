@@ -2,7 +2,7 @@ import { PrismaClient, Prisma } from '@prisma/client';
 import { ProductRepository } from '../repository/product.repository';
 import { CreateProductDto } from '../dto/createProduct.dto';
 import { UpdateProductDto } from '../dto/updateProduct.dto';
-
+import "@prisma/client";
 export class ProductService {
   private productRepository: ProductRepository;
 

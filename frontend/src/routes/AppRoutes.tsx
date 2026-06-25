@@ -34,6 +34,7 @@ import { Reports } from '../pages/admin/Reports';
 import { OrderView } from '../pages/POS/OrderView';
 import { Orders } from '../pages/POS/Orders';
 import { OrderDetail } from '../pages/POS/OrderDetail';
+import { Payments } from '../pages/POS/Payments';
 import { TableView } from '../pages/POS/TableView';
 import { Customers } from '../pages/POS/Customers';
 
@@ -75,12 +76,13 @@ export const AppRoutes: React.FC = () => (
         </Route>
       </Route>
 
-      {/* POS routes — any authenticated user */}
-      <Route element={<ProtectedRoute />}>
+      {/* POS routes — employee role only */}
+      <Route element={<ProtectedRoute allowedRoles={[ROLES.EMPLOYEE]} />}>
         <Route element={<PosLayout />}>
           <Route path={ROUTES.POS} element={<OrderView />} />
           <Route path={ROUTES.POS_ORDERS} element={<Orders />} />
           <Route path={ROUTES.POS_ORDERS_DETAIL} element={<OrderDetail />} />
+          <Route path={ROUTES.POS_PAYMENTS} element={<Payments />} />
           <Route path={ROUTES.POS_TABLE_VIEW} element={<TableView />} />
           <Route path={ROUTES.POS_CUSTOMERS} element={<Customers />} />
         </Route>

@@ -19,6 +19,7 @@ export const ROUTES = {
   POS: '/pos',
   POS_ORDERS: '/pos/orders',
   POS_ORDERS_DETAIL: '/pos/orders/:id',
+  POS_PAYMENTS: '/pos/payments',
   POS_TABLE_VIEW: '/pos/table-view',
   POS_CUSTOMERS: '/pos/customers',
   

@@ -27,6 +27,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onSearch, tableLabel }) => {
   const navLinks = [
     { label: 'Order', path: ROUTES.POS },
     { label: 'Orders', path: ROUTES.POS_ORDERS },
+    { label: 'Payments', path: ROUTES.POS_PAYMENTS },
     { label: 'Tables', path: ROUTES.POS_TABLE_VIEW },
     { label: 'Customers', path: ROUTES.POS_CUSTOMERS },
   ];
@@ -82,15 +83,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onSearch, tableLabel }) => {
           </button>
           {menuOpen && (
             <div className="absolute right-0 top-11 w-52 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
-              <Link to={ROUTES.ADMIN_DASHBOARD} onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-odoo-purple">
-                <Settings className="w-4 h-4 text-gray-400" /> Admin Panel
-              </Link>
+              {user?.role === 'admin' && (
+                <Link to={ROUTES.ADMIN_DASHBOARD} onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-odoo-purple">
+                  <Settings className="w-4 h-4 text-gray-400" /> Admin Panel
+                </Link>
+              )}
               <Link to={ROUTES.KDS} onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-odoo-purple">
                 <ChefHat className="w-4 h-4 text-gray-400" /> KDS Dashboard
               </Link>
-              <Link to={ROUTES.ADMIN_REPORTS} onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-odoo-purple">
-                <BarChart3 className="w-4 h-4 text-gray-400" /> Reports
-              </Link>
+              {user?.role === 'admin' && (
+                <Link to={ROUTES.ADMIN_REPORTS} onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-odoo-purple">
+                  <BarChart3 className="w-4 h-4 text-gray-400" /> Reports
+                </Link>
+              )}
               <Link to={ROUTES.CUSTOMER_DISPLAY} onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-odoo-purple">
                 <Monitor className="w-4 h-4 text-gray-400" /> Customer Display
               </Link>

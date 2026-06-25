@@ -314,12 +314,6 @@ export const Floors: React.FC = () => {
       );
       saveReservations(updatedReservations);
 
-      // Mark table as OCCUPIED
-      await tableService.updateStatus(table.id, 'OCCUPIED');
-      const updatedTable = { ...table, status: 'OCCUPIED' as const };
-      saveTableLocal(updatedTable);
-      qc.invalidateQueries({ queryKey: ['floors'] });
-
       let activeTable = table;
       if (table.id.startsWith('t_')) {
         const dbTable = await tableService.create({
@@ -338,6 +332,13 @@ export const Floors: React.FC = () => {
           activeTable = { ...table, id: createdTable.id };
         }
       }
+
+      // Mark table as OCCUPIED
+      await tableService.updateStatus(activeTable.id, 'OCCUPIED');
+      const updatedTable = { ...activeTable, status: 'OCCUPIED' as const };
+      saveTableLocal(updatedTable);
+      qc.invalidateQueries({ queryKey: ['floors'] });
+      
       setSelectedTable(activeTable);
       navigate(ROUTES.POS);
     } catch (e: any) {
@@ -1713,13 +1714,7 @@ export const Floors: React.FC = () => {
             const customer = await customerService.create({ name, email });
             useCartStore.getState().setCustomer(customer.id);
 
-            // 2. Mark table as OCCUPIED
-            await tableService.updateStatus(table.id, 'OCCUPIED');
-            const updatedTable = { ...table, status: 'OCCUPIED' as const };
-            saveTableLocal(updatedTable);
-            qc.invalidateQueries({ queryKey: ['floors'] });
-
-            // 3. Make sure table is synced to backend
+            // 2. Make sure table is synced to backend
             let activeTable = table;
             if (table.id.startsWith('t_')) {
               const dbTable = await tableService.create({
@@ -1738,6 +1733,13 @@ export const Floors: React.FC = () => {
                 activeTable = { ...table, id: createdTable.id };
               }
             }
+
+            // 3. Mark table as OCCUPIED
+            await tableService.updateStatus(activeTable.id, 'OCCUPIED');
+            const updatedTable = { ...activeTable, status: 'OCCUPIED' as const };
+            saveTableLocal(updatedTable);
+            qc.invalidateQueries({ queryKey: ['floors'] });
+
             setSelectedTable(activeTable);
             navigate(ROUTES.POS);
           } catch (e: any) {
@@ -1751,12 +1753,6 @@ export const Floors: React.FC = () => {
           try {
             useCartStore.getState().setCustomer('');
 
-            // Mark table as OCCUPIED
-            await tableService.updateStatus(table.id, 'OCCUPIED');
-            const updatedTable = { ...table, status: 'OCCUPIED' as const };
-            saveTableLocal(updatedTable);
-            qc.invalidateQueries({ queryKey: ['floors'] });
-
             let activeTable = table;
             if (table.id.startsWith('t_')) {
               const dbTable = await tableService.create({
@@ -1775,6 +1771,13 @@ export const Floors: React.FC = () => {
                 activeTable = { ...table, id: createdTable.id };
               }
             }
+
+            // Mark table as OCCUPIED
+            await tableService.updateStatus(activeTable.id, 'OCCUPIED');
+            const updatedTable = { ...activeTable, status: 'OCCUPIED' as const };
+            saveTableLocal(updatedTable);
+            qc.invalidateQueries({ queryKey: ['floors'] });
+
             setSelectedTable(activeTable);
             navigate(ROUTES.POS);
           } catch (e: any) {

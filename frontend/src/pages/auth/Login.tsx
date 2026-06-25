@@ -17,7 +17,13 @@ export const Login: React.FC = () => {
     setError('');
     if (!email || !password) { setError('Please fill in all fields'); return; }
     login({ email, password }, {
-      onSuccess: () => navigate(ROUTES.POS),
+      onSuccess: (data) => {
+        if (data.user?.role === 'admin') {
+          navigate(ROUTES.ADMIN_DASHBOARD);
+        } else {
+          navigate(ROUTES.POS);
+        }
+      },
       onError: (err: unknown) => setError((err as Error)?.message ?? 'Login failed'),
     });
   }; return (
